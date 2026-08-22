@@ -8,13 +8,6 @@ const client = new Client({
   ]
 });
 
-const CONFIG = {
-  TOKEN: "MTQ2MTc0NDEzODMzNTU1MTQ4OA.GA6GJK.PQrGZTDtS64sqZH27yj681ay9Lxy1Y38gGGVL8",
-  CHAVE_PIX: "57176880832",
-  ID_CARGO_ADM: "1461513349224202363",
-  TAXA_ADM: 0.20,
-  NOME_TITULAR: "MIGUEL MARTINS DE PAULA"
-};
 
 const VALORES_APOSTA = [100.00, 80.00, 50.00, 30.00, 15.00, 10.00, 5.00, 3.00, 2.00, 1.00, 0.80, 0.50];
 const filas = new Map();
@@ -246,4 +239,4 @@ client.once('ready', () => {
   console.log(`🤖 Bot online como: ${client.user.tag}`);
 });
 
-client.login(CONFIG.TOKEN);
+client.login(process.env.DISCORD_TOKEN);
