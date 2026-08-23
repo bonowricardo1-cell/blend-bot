@@ -83,7 +83,6 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
     
-    // Responde instantaneamente para evitar o erro do Discord
     await interaction.deferUpdate().catch(() => {});
 
     const partes = interaction.customId.split('|');
@@ -105,7 +104,6 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
         }
 
-        // Conta em quantas filas DIFERENTES o usuário já está ativo (limite de 3)
         let totalFilasAtivas = 0;
         for (const [outraChave, jogadores] of filas.entries()) {
             if (jogadores.some(j => j.id === usuarioId)) {
