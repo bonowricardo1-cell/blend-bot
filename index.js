@@ -1,6 +1,5 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
-// Servidor HTTP para a Render não derrubar o Bot por causa da porta
 const http = require('http');
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -20,7 +19,6 @@ const client = new Client({
 const filas = new Map();
 const confirmadosPartida = new Map();
 
-// SEUS DADOS CONFIGURADOS (SEM CIDADE)
 const DADOS_PIX = {
     chave: "57176880832", 
     nome: "MIGUEL MARTINS DE PAULA"
@@ -232,3 +230,4 @@ client.on('interactionCreate', async (interaction) => {
         const mediadorId = partesConfirmar[4];
         const usuarioId = interaction.user.id;
 
+        if (usuarioId !== p1Id && usuarioId !== p2Id) {
