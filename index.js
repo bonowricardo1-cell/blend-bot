@@ -9,6 +9,7 @@ const client = new Client({
 });
 
 const filas = new Map();
+const confirmadosPartida = new Map();
 
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -146,41 +147,69 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.message.edit({ embeds: [embedVazio] }).catch(() => {});
 
         try {
-            const guild = interaction.guild;
-            
-            const canalPrivado = await guild.channels.create({
-                name: `sala-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s+/g, '-'),
-                type: ChannelType.GuildText,
-                parent: interaction.channel.parentId,
-                permissionOverwrites: [
-                    {
-                        id: guild.id,
-                        deny: [PermissionFlagsBits.ViewChannel],
-                    },
-                    {
-                        id: player1.id,
-                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-                    },
-                    {
-                        id: player2.id,
-                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-                    },
-                    {
-                        id: client.user.id,
-                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
-                    }
-                ]
-            });
+        const guild = interaction.guild;
 
-            await canalPrivado.send({
-                content: `🚨 **SALA PRIVADA CRIADA!**\n\nJogadores: <@${player1.id}> (${player1.opcao}) vs <@${player2.id}> (${player2.opcao})\nValor: ${formatarMoeda(valor)}\n\n*Conversem por aqui para acertar a aposta!*`
-            });
+        const canalPrivado = await guild.channels.create({
+            name: `sala-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s/g, '-'),
+            type: ChannelType.GuildText,
+            parent: interaction.channel.parentId,
+            permissionOverwrites: [
+                {
+                    id: guild.id,
+                    deny: [PermissionFlagsBits.ViewChannel],
+                },
+                {
+                    id: player1.id,
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                },
+                {
+                    id: player2.id,
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                },
+                {
+                    id: client.user.id,
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
+                }
+            ]
+        });
 
-        } catch (e) {
-            console.log("Erro ao criar canal privado:", e);
-        }
+        // Inicializa a lista de confirmados vazia para este novo canal
+        confirmadosPartida.set(canalPrivado.id, []);
+
+        // Monta o Embed Profissional da Aposta
+        const embedAposta = new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle('Canal de aposta criado ✅')
+            .addFields(
+                { name: 'Modo:', value: `${player1.opcao}`, inline: false },
+                { name: 'Valor:', value: `R$ ${formatarMoeda(valor)}`, inline: false },
+                { name: 'Jogadores:', value: `<@${player1.id}>, <@${player2.id}>`, inline: false },
+                { name: 'Mediador:', value: `<@${interaction.user.id}>`, inline: false }
+            );
+
+        // Cria os botões de Confirmar e Cancelar
+        const botoesAposta = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`confirmar_${player1.id}_${player2.id}_${interaction.user.id}`)
+                    .setLabel('Confirmar')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('cancelar_aposta')
+                    .setLabel('Cancelar')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+        // Envia o painel com os botões no canal privado recém-criado
+        await canalPrivado.send({
+            content: `<@${player1.id}>, <@${player2.id}>, <@${interaction.user.id}>`,
+            embeds: [embedAposta],
+            components: [botoesAposta]
+        });
+
+    } catch (e) {
+        console.log("Erro ao criar canal privado:", e);
     }
-});
 
 client.login(process.env.DISCORD_TOKEN);
 const http = require('http');
@@ -193,4 +222,54 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Servidor HTTP ouvindo na porta ${PORT}`);
+});
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isButton()) return;
+
+    const [acao, p1, p2, admId] = interaction.customId.split('_');
+    const canalId = interaction.channel.id;
+
+    if (interaction.customId === 'cancelar_aposta') {
+        await interaction.reply({ content: '❌ Aposta cancelada.', ephemeral: true });
+        return;
+    }
+
+    if (acao === 'confirmar') {
+        if (interaction.user.id !== p1 && interaction.user.id !== p2) {
+            return interaction.reply({ content: '❌ Apenas os jogadores da partida podem confirmar!', ephemeral: true });
+        }
+
+        let listaConfirmados = confirmadosPartida.get(canalId) || [];
+
+        if (listaConfirmados.includes(interaction.user.id)) {
+            return interaction.reply({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true });
+        }
+
+        listaConfirmados.push(interaction.user.id);
+        confirmadosPartida.set(canalId, listaConfirmados);
+
+        if (listaConfirmados.length < 2) {
+            return interaction.reply({ 
+                content: `✅ Confirmação registrada! Falta 1 jogador confirmar.`, 
+                ephemeral: true 
+            });
+        }
+
+        const embedPagamento = new EmbedBuilder()
+            .setColor('#00FF00')
+            .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO!')
+            .setDescription('Ambos os jogadores confirmaram. Façam o Pix para o mediador abaixo:')
+            .addFields(
+                { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
+                { name: 'Chave Pix:', value: '`11999999999`', inline: false },
+                { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
+            )
+            .setImage('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg');
+
+        await interaction.update({
+            content: `🔒 **AMBOS CONFIRMARAM!** <@${p1}> e <@${p2}>`,
+            embeds: [embedPagamento],
+            components: []
+        });
+    }
 });
