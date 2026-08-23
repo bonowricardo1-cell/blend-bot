@@ -48,14 +48,13 @@ client.on('messageCreate', async (message) => {
 
     if (!message.content.startsWith('!postar')) return;
 
-    // Trata espaços extras para evitar falhas no comando
     const args = message.content.trim().split(/\s+/);
     if (args.length < 3) {
         return message.reply('Use o formato correto com espaço: `!postar 1x1 1.00`');
     }
 
     const tipoModo = args[1];
-    const valor = parseFloat(args[2].replace(',', '.')); // Corrige vírgula para ponto se o usuário digitar 1,00
+    const valor = parseFloat(args[2].replace(',', '.'));
 
     if (isNaN(valor)) {
         return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 1.00`');
@@ -90,7 +89,6 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    // Resposta imediata para evitar o erro de "O aplicativo não respondeu a tempo"
     await interaction.deferUpdate().catch(() => {});
 
     if (interaction.customId.includes('|')) {
@@ -137,7 +135,7 @@ client.on('interactionCreate', async (interaction) => {
 
         let textoJogadores = "👥 **Nenhum jogador na fila**";
         if (listaJogadores.length > 0) {
-            textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/2):**\n` + 
+            textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/1):**\n` + 
                 listaJogadores.map(j => `<@${j.id}> | ${j.opcao}`).join('\n');
         }
 
@@ -148,9 +146,10 @@ client.on('interactionCreate', async (interaction) => {
 
         await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
 
-        if (listaJogadores.length >= 2) {
+        // ALTERADO PARA TESTE: fecha a fila com apenas 1 jogador (duplicando você mesmo para simular os dois lados)
+        if (listaJogadores.length >= 1) {
             const player1 = listaJogadores[0];
-            const player2 = listaJogadores[1];
+            const player2 = listaJogadores[0]; // Simula o segundo jogador sendo você mesmo para o teste
 
             filas.set(chaveFila, []);
 
@@ -166,13 +165,12 @@ client.on('interactionCreate', async (interaction) => {
                 const admId = interaction.user.id;
 
                 const canalPrivado = await guild.channels.create({
-                    name: `sala-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s/g, '-'),
+                    name: `sala-teste-${player1.opcao}`.toLowerCase().replace(/\s/g, '-'),
                     type: ChannelType.GuildText,
                     parent: interaction.channel.parentId,
                     permissionOverwrites: [
                         { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
                         { id: player1.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
-                        { id: player2.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
                         { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
                     ]
                 });
@@ -183,19 +181,19 @@ client.on('interactionCreate', async (interaction) => {
 
                 const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
-                    .setTitle('Canal de aposta criado ✅')
+                    .setTitle('Canal de aposta criado (Modo Teste) ✅')
                     .addFields(
                         { name: 'Partida:', value: `${numPartida}`, inline: false },
                         { name: 'Modo:', value: `${modo.toUpperCase()} - ${player1.opcao}`, inline: false },
                         { name: 'Valor:', value: `${formatarMoeda(valor)}`, inline: false },
-                        { name: 'Jogadores:', value: `<@${player1.id}>, <@${player2.id}>`, inline: false },
+                        { name: 'Jogadores:', value: `<@${player1.id}> (Você testando sozinho)`, inline: false },
                         { name: 'Mediador:', value: `<@${admId}>`, inline: false }
                     );
 
                 const botoesApostaCriada = new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
-                        .setCustomId(`confirmar_${player1.id}_${player2.id}_${admId}`)
-                        .setLabel('Confirmar')
+                        .setCustomId(`confirmar_${player1.id}_${player1.id}_${admId}`)
+                        .setLabel('Confirmar Teste')
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
                         .setCustomId('cancelar_aposta')
@@ -204,7 +202,7 @@ client.on('interactionCreate', async (interaction) => {
                 );
 
                 await canalPrivado.send({
-                    content: `<@${player1.id}>, <@${player2.id}>`,
+                    content: `<@${player1.id}>`,
                     embeds: [embedApostaCriada],
                     components: [botoesApostaCriada]
                 });
@@ -228,13 +226,8 @@ client.on('interactionCreate', async (interaction) => {
 
     if (acao === 'confirmar') {
         const p1 = partesCustomId[1];
-        const p2 = partesCustomId[2];
         const admId = partesCustomId[3];
         const canalId = interaction.channel.id;
-
-        if (interaction.user.id !== p1 && interaction.user.id !== p2) {
-            return interaction.followUp({ content: '❌ Apenas os jogadores da partida podem confirmar!', ephemeral: true });
-        }
 
         let listaConfirmados = confirmadosPartida.get(canalId) || [];
 
@@ -245,17 +238,10 @@ client.on('interactionCreate', async (interaction) => {
         listaConfirmados.push(interaction.user.id);
         confirmadosPartida.set(canalId, listaConfirmados);
 
-        if (listaConfirmados.length < 2) {
-            return interaction.followUp({ 
-                content: `✅ Confirmação registrada! Falta 1 jogador confirmar.`, 
-                ephemeral: true 
-            });
-        }
-
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
-            .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO!')
-            .setDescription('Ambos os jogadores confirmaram. Façam o Pix para o mediador abaixo:')
+            .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
+            .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
             .addFields(
                 { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
                 { name: 'Chave Pix:', value: '`11999999999`', inline: false },
@@ -264,7 +250,7 @@ client.on('interactionCreate', async (interaction) => {
             .setImage('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg');
 
         await interaction.message.edit({
-            content: `🔒 **AMBOS CONFIRMARAM!** <@${p1}> e <@${p2}>`,
+            content: `🔒 **TESTE APROVADO!** <@${p1}>`,
             embeds: [embedPagamento],
             components: []
         });
