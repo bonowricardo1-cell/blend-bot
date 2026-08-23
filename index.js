@@ -231,3 +231,50 @@ client.on('interactionCreate', async (interaction) => {
         const usuarioId = interaction.user.id;
 
         if (usuarioId !== p1Id && usuarioId !== p2Id) {
+        if (usuarioId !== p1Id && usuarioId !== p2Id) {
+            return interaction.followUp({ content: '❌ Você não faz parte desta aposta para poder confirmar!', ephemeral: true });
+        }
+
+        let confirmados = confirmadosPartida.get(interaction.channel.id) || [];
+
+        if (confirmados.includes(usuarioId)) {
+            return interaction.followUp({ content: '❌ Você já confirmou esta aposta!', ephemeral: true });
+        }
+
+        confirmados.push(usuarioId);
+        confirmadosPartida.set(interaction.channel.id, confirmados);
+
+        if (confirmados.length === 2) {
+            const copiaECola = gerarPixCopiaECola(valorAposta);
+            const linkQrCodeDinamico = `https://qrserver.com{encodeURIComponent(copiaECola)}`;
+
+            const embedPix = new EmbedBuilder()
+                .setColor('#00ff00')
+                .setTitle('💸 PAGAMENTO DA APOSTA')
+                .setDescription(`Ambos os jogadores confirmaram! Façam o pagamento de **${formatarMoeda(valorAposta)}** para iniciar a partida.`)
+                .addFields(
+                    { name: '👤 Titular do PIX (ADM):', value: `\`${DADOS_PIX.nome}\``, inline: false },
+                    { name: '🔑 Chave PIX (CPF):', value: `\`${DADOS_PIX.chave}\``, inline: true },
+                    { name: '📱 PIX Copia e Cola:', value: `\`\`\`${copiaECola}\`\`\``, inline: false }
+                )
+                .setImage(linkQrCodeDinamico);
+
+            await interaction.message.edit({ embeds: [embedPix], components: [] });
+            await interaction.channel.send('🚀 Mande o comprovante aqui no chat assim que realizarem o PIX!');
+            
+        } else {
+            await interaction.channel.send(`⚠️ <@${usuarioId}> confirmou. Aguardando o outro jogador aceitar.`);
+        }
+    }
+
+    if (interaction.customId === 'cancelar_aposta') {
+        await interaction.deferUpdate().catch(() => {});
+        await interaction.channel.send('❌ **Aposta cancelada por um dos jogadores.** Este canal será deletado em 5 segundos...');
+        confirmadosPartida.delete(interaction.channel.id);
+        setTimeout(async () => {
+            await interaction.channel.delete().catch(() => {});
+        }, 5000);
+    }
+});
+
+client.login(process.env.TOKEN);
