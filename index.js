@@ -67,6 +67,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
         .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
+        .setThumbnail('https://i.imgur.com/7w3F4Gk.png') // Logo animada ao lado do card
         .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
         .setColor('#0099ff');
 
@@ -145,6 +146,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+            .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
             .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
@@ -158,6 +160,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
                 .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
                 .setColor('#0099ff');
 
@@ -184,6 +187,7 @@ client.on('interactionCreate', async (interaction) => {
 
                 const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
+                    .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
                     .setTitle('Canal de aposta criado (Modo Teste) ✅')
                     .addFields(
                         { name: 'Partida:', value: `${numPartida}`, inline: false },
@@ -246,6 +250,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
+            .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
             .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
             .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
             .addFields(
@@ -254,8 +259,7 @@ client.on('interactionCreate', async (interaction) => {
                 { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
                 { name: 'Chave Pix:', value: '`11999999999`', inline: false },
                 { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
-            )
-            .setImage('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg');
+            );
 
         await interaction.message.edit({
             content: `🔒 **TESTE APROVADO!** <@${p1}>`,
