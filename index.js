@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const http = http = require('http');
+const http = require('http');
 
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
@@ -46,7 +46,6 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // Comando para postar em todas as salas de uma vez só automaticamente
     if (message.content.startsWith('!postar-tudo')) {
         const args = message.content.trim().split(/\s+/);
         if (args.length < 2) {
@@ -61,7 +60,6 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {});
         const taxaAdm = 0.15;
 
-        // Procura todos os canais do servidor que contêm 1x1, 2x2, 3x3 ou 4x4
         const canais = message.guild.channels.cache.filter(c => c.type === ChannelType.GuildText);
         
         for (const [id, canal] of canais) {
@@ -100,7 +98,6 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // Comando manual individual tradicional (`!postar 1x1 2.00`)
     if (!message.content.startsWith('!postar')) return;
 
     const args = message.content.trim().split(/\s+/);
