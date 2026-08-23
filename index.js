@@ -212,7 +212,7 @@ client.on('interactionCreate', async (interaction) => {
                 { name: 'Mediador:', value: `<@${admId || interaction.user.id}>`, inline: false }
             );
 
-        const botoesAposta = new ActionRowBuilder().addComponents(
+        const botoesApostaCriada = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`confirmar_${player1.id}_${player2.id}_${admId || interaction.user.id}`)
                 .setLabel('Confirmar')
@@ -226,7 +226,7 @@ client.on('interactionCreate', async (interaction) => {
         await canalPrivado.send({
             content: `<@${player1.id}>, <@${player2.id}>`,
             embeds: [embedApostaCriada],
-            components: [botoesAposta]
+            components: [botoesApostaCriada]
         });
     } catch (e) {
         console.log("Erro ao criar canal privado:", e);
