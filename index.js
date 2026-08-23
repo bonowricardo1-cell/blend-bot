@@ -1,11 +1,15 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-
 const http = require('http');
-http.createServer((req, res) => {
+
+// Servidor HTTP interno configurado perfeitamente para a Render não dar erro de porta
+const PORT = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot Bland Apostas Online!');
-}).listen(process.env.PORT || 10000, () => {
-    console.log("Servidor HTTP interno iniciado para a Render.");
+    res.end('BLAND bot rodando normal e ativo!\n');
+});
+
+server.listen(PORT, () => {
+    console.log(`Servidor HTTP ouvindo na porta ${PORT}`);
 });
 
 const client = new Client({
@@ -19,22 +23,8 @@ const client = new Client({
 const filas = new Map();
 const confirmadosPartida = new Map();
 
-const DADOS_PIX = {
-    chave: "57176880832", 
-    nome: "MIGUEL MARTINS DE PAULA"
-};
-
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function gerarPixCopiaECola(valor) {
-    const valorFormatado = valor.toFixed(2);
-    const textoChave = `0111${DADOS_PIX.chave}`;
-    const textoNome = `59${String(DADOS_PIX.nome.length).padStart(2, '0')}${DADOS_PIX.nome}`;
-    const textoValor = `54${String(valorFormatado.length).padStart(2, '0')}${valorFormatado}`;
-    const payloadSemCRC = `00020101021126540014br.gov.bcb.pix${textoChave}520400005303986${textoValor}5802BR${textoNome}62070503***`;
-    return `${payloadSemCRC}6304AAAA`; 
 }
 
 client.once('ready', () => {
@@ -99,7 +89,8 @@ client.on('messageCreate', async (message) => {
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
-    
+
+    // Tratamento para botões de gerenciamento de fila (entrar/sair)
     if (interaction.customId.includes('|')) {
         await interaction.deferUpdate().catch(() => {});
 
@@ -172,6 +163,7 @@ client.on('interactionCreate', async (interaction) => {
 
             try {
                 const guild = interaction.guild;
+                const admId = interaction.user.id;
 
                 const canalPrivado = await guild.channels.create({
                     name: `sala-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s/g, '-'),
@@ -186,94 +178,98 @@ client.on('interactionCreate', async (interaction) => {
                 });
 
                 confirmadosPartida.set(canalPrivado.id, []);
-                const mediadorId = interaction.user.id;
 
-                const embedAposta = new EmbedBuilder()
+                const numPartida = Math.floor(Math.random() * 900000) + 100000;
+
+                const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setTitle('Canal de aposta criado ✅')
                     .addFields(
-                        { name: 'Modo:', value: `${player1.opcao} vs ${player2.opcao}`, inline: true },
-                        { name: 'Valor:', value: `${formatarMoeda(valor)}`, inline: true },
-                        { name: 'Mediador:', value: `<@${mediadorId}>`, inline: false },
-                        { name: 'Jogadores:', value: `<@${player1.id}> e <@${player2.id}>`, inline: false }
-                    )
-                    .setDescription('⚠️ Ambos os jogadores precisam clicar em **Confirmar Aposta** para liberar os dados de pagamento.');
-
-                const botoesAposta = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`confirmar_${player1.id}_${player2.id}_${valor}_${mediadorId}`)
-                            .setLabel('Confirmar Aposta')
-                            .setStyle(ButtonStyle.Success),
-                        new ButtonBuilder()
-                            .setCustomId('cancelar_aposta')
-                            .setLabel('Cancelar')
-                            .setStyle(ButtonStyle.Danger)
+                        { name: 'Partida:', value: `${numPartida}`, inline: false },
+                        { name: 'Modo:', value: `${modo.toUpperCase()} - ${player1.opcao}`, inline: false },
+                        { name: 'Valor:', value: `${formatarMoeda(valor)}`, inline: false },
+                        { name: 'Jogadores:', value: `<@${player1.id}>, <@${player2.id}>`, inline: false },
+                        { name: 'Mediador:', value: `<@${admId}>`, inline: false }
                     );
 
-                await canalPrivado.send({ content: `<@${player1.id}> <@${player2.id}>`, embeds: [embedAposta], components: [botoesAposta] });
+                const botoesApostaCriada = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`confirmar_${player1.id}_${player2.id}_${admId}`)
+                        .setLabel('Confirmar')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId('cancelar_aposta')
+                        .setLabel('Cancelar')
+                        .setStyle(ButtonStyle.Danger)
+                );
 
-            } catch (error) {
-                console.error("Erro ao criar canal privado:", error);
+                await canalPrivado.send({
+                    content: `<@${player1.id}>, <@${player2.id}>`,
+                    embeds: [embedApostaCriada],
+                    components: [botoesApostaCriada]
+                });
+            } catch (e) {
+                console.log("Erro ao criar canal privado:", e);
             }
         }
         return;
     }
 
-    if (interaction.customId.startsWith('confirmar_')) {
-        await interaction.deferUpdate().catch(() => {});
-        
-        const partesConfirmar = interaction.customId.split('_');
-        const p1Id = partesConfirmar[1];
-        const p2Id = partesConfirmar[2];
-        const valorAposta = parseFloat(partesConfirmar[3]);
-        const mediadorId = partesConfirmar[4];
-        const usuarioId = interaction.user.id;
-
-        if (usuarioId !== p1Id && usuarioId !== p2Id) {
-        if (usuarioId !== p1Id && usuarioId !== p2Id) {
-            return interaction.followUp({ content: '❌ Você não faz parte desta aposta para poder confirmar!', ephemeral: true });
-        }
-
-        let confirmados = confirmadosPartida.get(interaction.channel.id) || [];
-
-        if (confirmados.includes(usuarioId)) {
-            return interaction.followUp({ content: '❌ Você já confirmou esta aposta!', ephemeral: true });
-        }
-
-        confirmados.push(usuarioId);
-        confirmadosPartida.set(interaction.channel.id, confirmados);
-
-        if (confirmados.length === 2) {
-            const copiaECola = gerarPixCopiaECola(valorAposta);
-            const linkQrCodeDinamico = `https://qrserver.com{encodeURIComponent(copiaECola)}`;
-
-            const embedPix = new EmbedBuilder()
-                .setColor('#00ff00')
-                .setTitle('💸 PAGAMENTO DA APOSTA')
-                .setDescription(`Ambos os jogadores confirmaram! Façam o pagamento de **${formatarMoeda(valorAposta)}** para iniciar a partida.`)
-                .addFields(
-                    { name: '👤 Titular do PIX (ADM):', value: `\`${DADOS_PIX.nome}\``, inline: false },
-                    { name: '🔑 Chave PIX (CPF):', value: `\`${DADOS_PIX.chave}\``, inline: true },
-                    { name: '📱 PIX Copia e Cola:', value: `\`\`\`${copiaECola}\`\`\``, inline: false }
-                )
-                .setImage(linkQrCodeDinamico);
-
-            await interaction.message.edit({ embeds: [embedPix], components: [] });
-            await interaction.channel.send('🚀 Mande o comprovante aqui no chat assim que realizarem o PIX!');
-            
-        } else {
-            await interaction.channel.send(`⚠️ <@${usuarioId}> confirmou. Aguardando o outro jogador aceitar.`);
-        }
-    }
-
+    // Tratamento para o botão de Cancelar Aposta
     if (interaction.customId === 'cancelar_aposta') {
-        await interaction.deferUpdate().catch(() => {});
-        await interaction.channel.send('❌ **Aposta cancelada por um dos jogadores.** Este canal será deletado em 5 segundos...');
-        confirmadosPartida.delete(interaction.channel.id);
+        await interaction.reply({ content: '❌ Aposta cancelada.', ephemeral: true });
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
-        }, 5000);
+        }, 3000);
+        return;
+    }
+
+    // Tratamento para botões de Confirmar Partida
+    const partesCustomId = interaction.customId.split('_');
+    const acao = partesCustomId[0];
+
+    if (acao === 'confirmar') {
+        const p1 = partesCustomId[1];
+        const p2 = partesCustomId[2];
+        const admId = partesCustomId[3];
+        const canalId = interaction.channel.id;
+
+        if (interaction.user.id !== p1 && interaction.user.id !== p2) {
+            return interaction.reply({ content: '❌ Apenas os jogadores da partida podem confirmar!', ephemeral: true });
+        }
+
+        let listaConfirmados = confirmadosPartida.get(canalId) || [];
+
+        if (listaConfirmados.includes(interaction.user.id)) {
+            return interaction.reply({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true });
+        }
+
+        listaConfirmados.push(interaction.user.id);
+        confirmadosPartida.set(canalId, listaConfirmados);
+
+        if (listaConfirmados.length < 2) {
+            return interaction.reply({ 
+                content: `✅ Confirmação registrada! Falta 1 jogador confirmar.`, 
+                ephemeral: true 
+            });
+        }
+
+        const embedPagamento = new EmbedBuilder()
+            .setColor('#00FF00')
+            .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO!')
+            .setDescription('Ambos os jogadores confirmaram. Façam o Pix para o mediador abaixo:')
+            .addFields(
+                { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
+                { name: 'Chave Pix:', value: '`11999999999`', inline: false },
+                { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
+            )
+            .setImage('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg');
+
+        await interaction.update({
+            content: `🔒 **AMBOS CONFIRMARAM!** <@${p1}> e <@${p2}>`,
+            embeds: [embedPagamento],
+            components: []
+        });
     }
 });
 
