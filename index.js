@@ -4,7 +4,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('BLAND bot rodando normal e ativo!\n');
+    res.end('ORG CHAOS bot rodando normal e ativo!\n');
 });
 
 server.listen(PORT, () => {
@@ -63,7 +63,7 @@ client.on('messageCreate', async (message) => {
     await message.delete().catch(() => {});
 
     const embed = new EmbedBuilder()
-        .setTitle(`${tipoModo.toUpperCase()} | BLAND APOSTAS`)
+        .setTitle(`${tipoModo.toUpperCase()} | ORG CHAOS APOSTAS`)
         .setDescription(`🎮 Modo: ${tipoModo}\n💰 Valor: ${formatarMoeda(valor)}\n\n👥 **Nenhum jogador na fila**`)
         .setColor('#0099ff');
 
@@ -140,21 +140,20 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         const novoEmbed = new EmbedBuilder()
-            .setTitle(`${modo.toUpperCase()} | BLAND APOSTAS`)
+            .setTitle(`${modo.toUpperCase()} | ORG CHAOS APOSTAS`)
             .setDescription(`🎮 Modo: ${modo}\n💰 Valor: ${formatarMoeda(valor)}\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
         await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
 
-        // ALTERADO PARA TESTE: fecha a fila com apenas 1 jogador (duplicando você mesmo para simular os dois lados)
+        // Teste: 1 jogador fecha a sala
         if (listaJogadores.length >= 1) {
             const player1 = listaJogadores[0];
-            const player2 = listaJogadores[0]; // Simula o segundo jogador sendo você mesmo para o teste
 
             filas.set(chaveFila, []);
 
             const embedVazio = new EmbedBuilder()
-                .setTitle(`${modo.toUpperCase()} | BLAND APOSTAS`)
+                .setTitle(`${modo.toUpperCase()} | ORG CHAOS APOSTAS`)
                 .setDescription(`🎮 Modo: ${modo}\n💰 Valor: ${formatarMoeda(valor)}\n\n👥 **Nenhum jogador na fila**`)
                 .setColor('#0099ff');
 
@@ -192,7 +191,7 @@ client.on('interactionCreate', async (interaction) => {
 
                 const botoesApostaCriada = new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
-                        .setCustomId(`confirmar_${player1.id}_${player1.id}_${admId}`)
+                        .setCustomId(`confirmar_${player1.id}_${valor}_${admId}`)
                         .setLabel('Confirmar Teste')
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
@@ -226,6 +225,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (acao === 'confirmar') {
         const p1 = partesCustomId[1];
+        const valorAposta = parseFloat(partesCustomId[2]);
         const admId = partesCustomId[3];
         const canalId = interaction.channel.id;
 
@@ -238,11 +238,16 @@ client.on('interactionCreate', async (interaction) => {
         listaConfirmados.push(interaction.user.id);
         confirmadosPartida.set(canalId, listaConfirmados);
 
+        // Exemplo de cálculo de taxa para o ADM (ajuste a porcentagem se precisar, ex: 10% ou valor fixo)
+        const valorFormatado = formatarMoeda(valorAposta);
+
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
             .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
             .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
             .addFields(
+                { name: 'Valor da Aposta:', value: `${valorFormatado}`, inline: false },
+                { name: 'Taxa / Valor do ADM:', value: `${valorFormatado}`, inline: false },
                 { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
                 { name: 'Chave Pix:', value: '`11999999999`', inline: false },
                 { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
