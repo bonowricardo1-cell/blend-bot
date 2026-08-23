@@ -1,19 +1,12 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
+// Servidor HTTP para a Render não derrubar o Bot por causa da porta
 const http = require('http');
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot Bland Apostas Online!');
 }).listen(process.env.PORT || 10000, () => {
     console.log("Servidor HTTP interno iniciado para a Render.");
-});
-
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
 });
 
 const client = new Client({
@@ -37,16 +30,12 @@ function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Função adaptada para gerar o código sem a dependência explícita de cidade
 function gerarPixCopiaECola(valor) {
     const valorFormatado = valor.toFixed(2);
     const textoChave = `0111${DADOS_PIX.chave}`;
     const textoNome = `59${String(DADOS_PIX.nome.length).padStart(2, '0')}${DADOS_PIX.nome}`;
     const textoValor = `54${String(valorFormatado.length).padStart(2, '0')}${valorFormatado}`;
-    
-    // String padrão aceita pelos bancos
     const payloadSemCRC = `00020101021126540014br.gov.bcb.pix${textoChave}520400005303986${textoValor}5802BR${textoNome}62070503***`;
-    
     return `${payloadSemCRC}6304AAAA`; 
 }
 
@@ -57,7 +46,6 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // Comando !limpar
     if (message.content === '!limpar') {
         try {
             await message.delete().catch(() => {});
@@ -114,7 +102,6 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
     
-    // Tratamento para os botões da FILA principal (possuem o caractere pipe "|")
     if (interaction.customId.includes('|')) {
         await interaction.deferUpdate().catch(() => {});
 
@@ -159,7 +146,6 @@ client.on('interactionCreate', async (interaction) => {
             }
         }
 
-        // Atualiza o visual da caixinha (Embed) com os nomes atualizados
         let textoJogadores = "👥 **Nenhum jogador na fila**";
         if (listaJogadores.length > 0) {
             textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/2):**\n` + 
@@ -173,14 +159,12 @@ client.on('interactionCreate', async (interaction) => {
 
         await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
 
-        // Quando fechar 2 jogadores, cria o canal privado automaticamente
         if (listaJogadores.length >= 2) {
             const player1 = listaJogadores[0];
             const player2 = listaJogadores[1];
 
             filas.set(chaveFila, []);
 
-            // Reseta o embed visual da fila para vazio após fechar
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | BLAND APOSTAS`)
                 .setDescription(`🎮 Modo: ${modo}\n💰 Valor: ${formatarMoeda(valor)}\n\n👥 **Nenhum jogador na fila**`)
@@ -238,9 +222,13 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // Fluxo de Confirmação Interna (Dentro do Canal Privado)
     if (interaction.customId.startsWith('confirmar_')) {
         await interaction.deferUpdate().catch(() => {});
         
         const partesConfirmar = interaction.customId.split('_');
         const p1Id = partesConfirmar[1];
+        const p2Id = partesConfirmar[2];
+        const valorAposta = parseFloat(partesConfirmar[3]);
+        const mediadorId = partesConfirmar[4];
+        const usuarioId = interaction.user.id;
+
