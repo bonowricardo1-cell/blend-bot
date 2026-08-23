@@ -62,12 +62,11 @@ client.on('messageCreate', async (message) => {
 
     await message.delete().catch(() => {});
 
-    // Taxa fixa de 15 centavos para o ADM
     const taxaAdm = 0.15;
 
     const embed = new EmbedBuilder()
         .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-        .setThumbnail('https://i.imgur.com/7w3F4Gk.png') // Logo animada ao lado do card
+        .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
         .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
         .setColor('#0099ff');
 
@@ -146,13 +145,12 @@ client.on('interactionCreate', async (interaction) => {
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
+            .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
             .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
         await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
 
-        // Teste: 1 jogador fecha a sala
         if (listaJogadores.length >= 1) {
             const player1 = listaJogadores[0];
 
@@ -160,7 +158,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-                .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
+                .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
                 .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
                 .setColor('#0099ff');
 
@@ -187,7 +185,7 @@ client.on('interactionCreate', async (interaction) => {
 
                 const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
-                    .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
+                    .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
                     .setTitle('Canal de aposta criado (Modo Teste) ✅')
                     .addFields(
                         { name: 'Partida:', value: `${numPartida}`, inline: false },
@@ -250,7 +248,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
-            .setThumbnail('https://i.imgur.com/7w3F4Gk.png')
+            .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
             .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
             .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
             .addFields(
