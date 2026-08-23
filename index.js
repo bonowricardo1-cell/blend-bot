@@ -169,7 +169,7 @@ client.on('interactionCreate', async (interaction) => {
                 const admId = interaction.user.id;
 
                 const canalPrivado = await guild.channels.create({
-                    name: `sala-teste-${player1.opcao}`.toLowerCase().replace(/\s/g, '-'),
+                    name: `sala-${player1.opcao}`.toLowerCase().replace(/\s/g, '-'),
                     type: ChannelType.GuildText,
                     parent: interaction.channel.parentId,
                     permissionOverwrites: [
@@ -186,13 +186,13 @@ client.on('interactionCreate', async (interaction) => {
                 const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-                    .setTitle('Canal de aposta criado (Modo Teste) ✅')
+                    .setTitle('SAMURAI E-SPORTS | Canal de Aposta ✅')
                     .addFields(
                         { name: 'Partida:', value: `${numPartida}`, inline: false },
                         { name: 'Modo:', value: `${modo.toUpperCase()} - ${player1.opcao}`, inline: false },
                         { name: 'Valor da Aposta:', value: `${formatarMoeda(valor)}`, inline: false },
                         { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
-                        { name: 'Jogadores:', value: `<@${player1.id}> (Você testando sozinho)`, inline: false },
+                        { name: 'Jogadores:', value: `<@${player1.id}>`, inline: false },
                         { name: 'Mediador:', value: `<@${admId}>`, inline: false }
                     );
 
@@ -249,8 +249,8 @@ client.on('interactionCreate', async (interaction) => {
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
             .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
-            .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
+            .setTitle('SAMURAI E-SPORTS | Pagamento Liberado 💳')
+            .setDescription('Fluxo de pagamento pronto para o confronto:')
             .addFields(
                 { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)}`, inline: false },
                 { name: 'Taxa do ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
@@ -260,7 +260,7 @@ client.on('interactionCreate', async (interaction) => {
             );
 
         await interaction.message.edit({
-            content: `🔒 **TESTE APROVADO!** <@${p1}>`,
+            content: `🔒 **PARTIDA CONFIRMADA!** <@${p1}>`,
             embeds: [embedPagamento],
             components: []
         });
