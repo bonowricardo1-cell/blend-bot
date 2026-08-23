@@ -1,7 +1,6 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 const http = require('http');
 
-// Servidor HTTP interno configurado perfeitamente para a Render não dar erro de porta
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -34,7 +33,7 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    if (message.content === '!limpar') {
+    if (message.content.startsWith('!limpar')) {
         try {
             await message.delete().catch(() => {});
             const fetched = await message.channel.messages.fetch({ limit: 50 });
@@ -49,16 +48,17 @@ client.on('messageCreate', async (message) => {
 
     if (!message.content.startsWith('!postar')) return;
 
-    const args = message.content.split(' ');
+    // Trata espaços extras para evitar falhas no comando
+    const args = message.content.trim().split(/\s+/);
     if (args.length < 3) {
-        return message.reply('Use o formato correto: `!postar [1x1 ou 2x2] [valor]`');
+        return message.reply('Use o formato correto com espaço: `!postar 1x1 1.00`');
     }
 
     const tipoModo = args[1];
-    const valor = parseFloat(args[2]);
+    const valor = parseFloat(args[2].replace(',', '.')); // Corrige vírgula para ponto se o usuário digitar 1,00
 
     if (isNaN(valor)) {
-        return message.reply('❌ Por favor, insira um valor numérico válido.');
+        return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 1.00`');
     }
 
     await message.delete().catch(() => {});
@@ -70,7 +70,7 @@ client.on('messageCreate', async (message) => {
 
     const botoes = new ActionRowBuilder();
 
-    if (tipoModo === '1x1') {
+    if (tipoModo.toLowerCase() === '1x1') {
         botoes.addComponents(
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
@@ -90,10 +90,10 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    // Tratamento para botões de gerenciamento de fila (entrar/sair)
-    if (interaction.customId.includes('|')) {
-        await interaction.deferUpdate().catch(() => {});
+    // Resposta imediata para evitar o erro de "O aplicativo não respondeu a tempo"
+    await interaction.deferUpdate().catch(() => {});
 
+    if (interaction.customId.includes('|')) {
         const partes = interaction.customId.split('|');
         if (partes.length < 4) return;
 
@@ -215,16 +215,14 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // Tratamento para o botão de Cancelar Aposta
     if (interaction.customId === 'cancelar_aposta') {
-        await interaction.reply({ content: '❌ Aposta cancelada.', ephemeral: true });
+        await interaction.followUp({ content: '❌ Aposta cancelada.', ephemeral: true }).catch(() => {});
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
         }, 3000);
         return;
     }
 
-    // Tratamento para botões de Confirmar Partida
     const partesCustomId = interaction.customId.split('_');
     const acao = partesCustomId[0];
 
@@ -235,20 +233,20 @@ client.on('interactionCreate', async (interaction) => {
         const canalId = interaction.channel.id;
 
         if (interaction.user.id !== p1 && interaction.user.id !== p2) {
-            return interaction.reply({ content: '❌ Apenas os jogadores da partida podem confirmar!', ephemeral: true });
+            return interaction.followUp({ content: '❌ Apenas os jogadores da partida podem confirmar!', ephemeral: true });
         }
 
         let listaConfirmados = confirmadosPartida.get(canalId) || [];
 
         if (listaConfirmados.includes(interaction.user.id)) {
-            return interaction.reply({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true });
+            return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true });
         }
 
         listaConfirmados.push(interaction.user.id);
         confirmadosPartida.set(canalId, listaConfirmados);
 
         if (listaConfirmados.length < 2) {
-            return interaction.reply({ 
+            return interaction.followUp({ 
                 content: `✅ Confirmação registrada! Falta 1 jogador confirmar.`, 
                 ephemeral: true 
             });
@@ -265,7 +263,7 @@ client.on('interactionCreate', async (interaction) => {
             )
             .setImage('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg');
 
-        await interaction.update({
+        await interaction.message.edit({
             content: `🔒 **AMBOS CONFIRMARAM!** <@${p1}> e <@${p2}>`,
             embeds: [embedPagamento],
             components: []
