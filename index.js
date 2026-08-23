@@ -201,12 +201,33 @@ client.on('interactionCreate', async (interaction) => {
             );
 
         // Envia o painel com os botões no canal privado recém-criado
+        const embedApostaCriada = new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle('Canal de aposta criado ✅')
+            .addFields(
+                { name: 'Partida:', value: `${Math.floor(Math.random() * 900000) + 100000}`, inline: false },
+                { name: 'Modo:', value: '1x1 Mobile Gelo Normal', inline: false },
+                { name: 'Valor:', value: 'R$ 0,50', inline: false },
+                { name: 'Jogadores:', value: `<@${player1.id}>, <@${player2.id}>`, inline: false },
+                { name: 'Mediador:', value: `<@${admId || interaction.user.id}>`, inline: false }
+            );
+
+        const botoesAposta = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`confirmar_${player1.id}_${player2.id}_${admId || interaction.user.id}`)
+                .setLabel('Confirmar')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('cancelar_aposta')
+                .setLabel('Cancelar')
+                .setStyle(ButtonStyle.Danger)
+        );
+
         await canalPrivado.send({
-            content: `<@${player1.id}>, <@${player2.id}>, <@${interaction.user.id}>`,
-            embeds: [embedAposta],
+            content: `<@${player1.id}>, <@${player2.id}>`,
+            embeds: [embedApostaCriada],
             components: [botoesAposta]
         });
-
     } catch (e) {
         console.log("Erro ao criar canal privado:", e);
     }
