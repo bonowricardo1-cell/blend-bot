@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const http = require('http');
+const http = http = require('http');
 
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
@@ -46,22 +46,76 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
+    // Comando para postar em todas as salas de uma vez só automaticamente
+    if (message.content.startsWith('!postar-tudo')) {
+        const args = message.content.trim().split(/\s+/);
+        if (args.length < 2) {
+            return message.reply('Use o formato correto: `!postar-tudo 2.00`');
+        }
+
+        const valor = parseFloat(args[1].replace(',', '.'));
+        if (isNaN(valor)) {
+            return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar-tudo 2.00`');
+        }
+
+        await message.delete().catch(() => {});
+        const taxaAdm = 0.15;
+
+        // Procura todos os canais do servidor que contêm 1x1, 2x2, 3x3 ou 4x4
+        const canais = message.guild.channels.cache.filter(c => c.type === ChannelType.GuildText);
+        
+        for (const [id, canal] of canais) {
+            const nomeCanal = canal.name.toLowerCase();
+            if (!nomeCanal.includes('1x1') && !nomeCanal.includes('2x2') && !nomeCanal.includes('3x3') && !nomeCanal.includes('4x4')) continue;
+
+            let tipoModo = '1x1';
+            if (nomeCanal.includes('2x2')) tipoModo = '2x2';
+            if (nomeCanal.includes('3x3')) tipoModo = '3x3';
+            if (nomeCanal.includes('4x4')) tipoModo = '4x4';
+
+            const embed = new EmbedBuilder()
+                .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
+                .setColor('#0099ff');
+
+            const botoes = new ActionRowBuilder();
+
+            if (nomeCanal.includes('1x1')) {
+                botoes.addComponents(
+                    new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Secondary)
+                );
+            } else {
+                botoes.addComponents(
+                    new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Secondary)
+                );
+            }
+
+            await canal.send({ embeds: [embed], components: [botoes] }).catch(() => {});
+        }
+        return;
+    }
+
+    // Comando manual individual tradicional (`!postar 1x1 2.00`)
     if (!message.content.startsWith('!postar')) return;
 
     const args = message.content.trim().split(/\s+/);
     if (args.length < 3) {
-        return message.reply('Use o formato correto com espaço: `!postar 1x1 1.00`');
+        return message.reply('Use o formato correto com espaço: `!postar 1x1 2.00`');
     }
 
     const tipoModo = args[1];
     const valor = parseFloat(args[2].replace(',', '.'));
 
     if (isNaN(valor)) {
-        return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 1.00`');
+        return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 2.00`');
     }
 
     await message.delete().catch(() => {});
-
     const taxaAdm = 0.15;
 
     const embed = new EmbedBuilder()
@@ -72,7 +126,7 @@ client.on('messageCreate', async (message) => {
 
     const botoes = new ActionRowBuilder();
 
-    if (tipoModo.toLowerCase() === '1x1') {
+    if (tipoModo.toLowerCase().includes('1x1')) {
         botoes.addComponents(
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
