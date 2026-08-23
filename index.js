@@ -81,11 +81,10 @@ client.on('messageCreate', async (message) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isButton()) return;
+    if (!interaction.isButton()) return;
+    await interaction.deferUpdate().catch(() => {});
 
-  const partes = interaction.customId.split('|');
-  if (partes.length < 4) return;
-
+    const partes = interaction.customId.split('|');
   const [acao, modo, valorStr, opcaoEscolhida] = partes;
   const valor = parseFloat(valorStr);
   const chaveFila = `${interaction.message.id}`;
