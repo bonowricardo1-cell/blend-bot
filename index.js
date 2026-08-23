@@ -65,10 +65,7 @@ client.on('messageCreate', async (message) => {
         for (const [id, canal] of canais) {
             const nomeCanal = canal.name.toLowerCase();
             
-            // Bloqueia qualquer canal que tenha a palavra "regra", "cargo", "chat" ou "aviso"
             if (nomeCanal.includes('regra') || nomeCanal.includes('cargo') || nomeCanal.includes('chat') || nomeCanal.includes('aviso')) continue;
-
-            // Verifica se é realmente um canal de fila (1x1, 2x2, 3x3, 4x4)
             if (!nomeCanal.includes('1x1') && !nomeCanal.includes('2x2') && !nomeCanal.includes('3x3') && !nomeCanal.includes('4x4')) continue;
 
             let tipoModo = '1x1';
@@ -148,7 +145,10 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    await interaction.deferUpdate().catch(() => {});
+    // Responde instantaneamente para evitar o erro de timeout do Discord
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {});
+    }
 
     if (interaction.customId.includes('|')) {
         const partes = interaction.customId.split('|');
@@ -168,7 +168,7 @@ client.on('interactionCreate', async (interaction) => {
         if (acao === 'entrar') {
             const jaEstaNestaFila = listaJogadores.some(j => j.id === usuarioId);
             if (jaEstaNestaFila) {
-                return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
 
             let totalFilasAtivas = 0;
@@ -179,7 +179,7 @@ client.on('interactionCreate', async (interaction) => {
             }
 
             if (totalFilasAtivas >= 3) {
-                return interaction.followUp({ content: '❌ Você atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true }).catch(() => {});
             }
 
             listaJogadores.push({ id: usuarioId, opcao: opcaoEscolhida });
@@ -189,7 +189,7 @@ client.on('interactionCreate', async (interaction) => {
             if (index !== -1) {
                 listaJogadores.splice(index, 1);
             } else {
-                return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true }).catch(() => {});
             }
         }
 
@@ -296,7 +296,7 @@ client.on('interactionCreate', async (interaction) => {
         let listaConfirmados = confirmadosPartida.get(canalId) || [];
 
         if (listaConfirmados.includes(interaction.user.id)) {
-            return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true });
+            return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true }).catch(() => {});
         }
 
         listaConfirmados.push(interaction.user.id);
@@ -319,7 +319,7 @@ client.on('interactionCreate', async (interaction) => {
             content: `🔒 **PARTIDA CONFIRMADA!** <@${p1}>`,
             embeds: [embedPagamento],
             components: []
-        });
+        }).catch(() => {});
     }
 });
 
