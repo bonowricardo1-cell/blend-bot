@@ -148,39 +148,32 @@ client.on('interactionCreate', async (interaction) => {
         try {
             const guild = interaction.guild;
             
-            // Cria um canal de texto privado na mesma categoria da mensagem atual
             const canalPrivado = await guild.channels.create({
-                name: `confronto-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s+/g, '-'),
+                name: `sala-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s+/g, '-'),
                 type: ChannelType.GuildText,
-                parent: interaction.channel.parentId, // Mantém na mesma categoria se houver
+                parent: interaction.channel.parentId,
                 permissionOverwrites: [
                     {
-                        id: guild.id, // Oculta para @everyone (todo mundo)
+                        id: guild.id,
                         deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
-                        id: player1.id, // Libera para o Jogador 1
+                        id: player1.id,
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
                     },
                     {
-                        id: player2.id, // Libera para o Jogador 2
+                        id: player2.id,
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
                     },
                     {
-                        id: client.user.id, // Libera para o Bot gerenciar
+                        id: client.user.id,
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
                     }
                 ]
             });
 
-            const botoesConfirmacao = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('confirmar_aposta').setLabel('Confirmar Aposta / Regras').setStyle(ButtonStyle.Success),
-                new ButtonBuilder().setCustomId('desistir_aposta').setLabel('Desistir / Sair').setStyle(ButtonStyle.Danger)
-            );
-
             await canalPrivado.send({
-                content: `🚨 **SALA PRIVADA DE CONFRONTO CRIADA!**\n\nJogadores: <@${player1.id}> (${player1.opcao}) vs <@${player2.id}> (${player2.opcao})\nValor: ${formatarMoeda(valor)}\n\n*Conversem por aqui, combinem o jogo e cliquem no botão abaixo para confirmar!*`,
-                components: [botoesConfirmacao]
+                content: `🚨 **SALA PRIVADA CRIADA!**\n\nJogadores: <@${player1.id}> (${player1.opcao}) vs <@${player2.id}> (${player2.opcao})\nValor: ${formatarMoeda(valor)}\n\n*Conversem por aqui para acertar a aposta!*`
             });
 
         } catch (e) {
