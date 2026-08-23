@@ -66,7 +66,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
         .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-        .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
+        .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
         .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
         .setColor('#0099ff');
 
@@ -145,7 +145,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
+            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
             .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
@@ -158,7 +158,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-                .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
                 .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Nenhum jogador na fila**`)
                 .setColor('#0099ff');
 
@@ -185,7 +185,7 @@ client.on('interactionCreate', async (interaction) => {
 
                 const embedApostaCriada = new EmbedBuilder()
                     .setColor('#0099ff')
-                    .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
+                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
                     .setTitle('Canal de aposta criado (Modo Teste) ✅')
                     .addFields(
                         { name: 'Partida:', value: `${numPartida}`, inline: false },
@@ -248,7 +248,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const embedPagamento = new EmbedBuilder()
             .setColor('#00FF00')
-            .setThumbnail('https://media.giphy.com/media/3oxHQGvP2845m8l9kI/giphy.gif')
+            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
             .setTitle('💳 PAGAMENTO DA APOSTA LIBERADO (TESTE)!')
             .setDescription('Como você está testando sozinho, o fluxo liberou direto:')
             .addFields(
