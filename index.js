@@ -1,5 +1,21 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
+const http = require('http');
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot Bland Apostas Online!');
+}).listen(process.env.PORT || 10000, () => {
+    console.log("Servidor HTTP interno iniciado para a Render.");
+});
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
+});
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
