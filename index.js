@@ -64,6 +64,11 @@ client.on('messageCreate', async (message) => {
         
         for (const [id, canal] of canais) {
             const nomeCanal = canal.name.toLowerCase();
+            
+            // Bloqueia qualquer canal que tenha a palavra "regra", "cargo", "chat" ou "aviso"
+            if (nomeCanal.includes('regra') || nomeCanal.includes('cargo') || nomeCanal.includes('chat') || nomeCanal.includes('aviso')) continue;
+
+            // Verifica se é realmente um canal de fila (1x1, 2x2, 3x3, 4x4)
             if (!nomeCanal.includes('1x1') && !nomeCanal.includes('2x2') && !nomeCanal.includes('3x3') && !nomeCanal.includes('4x4')) continue;
 
             let tipoModo = '1x1';
@@ -79,7 +84,7 @@ client.on('messageCreate', async (message) => {
 
             const botoes = new ActionRowBuilder();
 
-            if (nomeCanal.includes('1x1')) {
+            if (tipoModo === '1x1') {
                 botoes.addComponents(
                     new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
