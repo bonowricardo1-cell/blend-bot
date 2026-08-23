@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const client = new Client({
     intents: [
@@ -47,7 +47,7 @@ client.on('messageCreate', async (message) => {
     await message.delete().catch(() => {});
 
     const embed = new EmbedBuilder()
-        .setTitle(`2X2 | BLAND APOSTAS`)
+        .setTitle(`${tipoModo.toUpperCase()} | BLAND APOSTAS`)
         .setDescription(`🎮 Modo: ${tipoModo}\n💰 Valor: ${formatarMoeda(valor)}\n\n👥 **Nenhum jogador na fila**`)
         .setColor('#0099ff');
 
@@ -107,20 +107,84 @@ client.on('interactionCreate', async (interaction) => {
 
         listaJogadores.push({ id: usuarioId, opcao: opcaoEscolhida });
 
-        if (listaJogadores.length >= 2) {
-            const player1 = listaJogadores[0];
-            const player2 = listaJogadores[1];
-
-            filas.set(chaveFila, []);
-
-            await interaction.channel.send({
-                content: `🚨 **FILA FECHADA!**\nConfronto: <@${player1.id}> (${player1.opcao}) vs <@${player2.id}> (${player2.opcao})\nValor: ${formatarMoeda(valor)}`
-            });
-        }
     } else if (acao === 'sair') {
         const index = listaJogadores.findIndex(j => j.id === usuarioId);
         if (index !== -1) {
             listaJogadores.splice(index, 1);
+        } else {
+            return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true });
+        }
+    }
+
+    // Atualiza o visual da caixinha (Embed) com os nomes atualizados
+    let textoJogadores = "👥 **Nenhum jogador na fila**";
+    if (listaJogadores.length > 0) {
+        textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/2):**\n` + 
+            listaJogadores.map(j => `<@${j.id}> | ${j.opcao}`).join('\n');
+    }
+
+    const novoEmbed = new EmbedBuilder()
+        .setTitle(`${modo.toUpperCase()} | BLAND APOSTAS`)
+        .setDescription(`🎮 Modo: ${modo}\n💰 Valor: ${formatarMoeda(valor)}\n\n${textoJogadores}`)
+        .setColor('#0099ff');
+
+    await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
+
+    // Se fechar 2 jogadores, cria o canal privado automaticamente
+    if (listaJogadores.length >= 2) {
+        const player1 = listaJogadores[0];
+        const player2 = listaJogadores[1];
+
+        filas.set(chaveFila, []);
+
+        // Reseta o embed visual da fila para vazio após fechar
+        const embedVazio = new EmbedBuilder()
+            .setTitle(`${modo.toUpperCase()} | BLAND APOSTAS`)
+            .setDescription(`🎮 Modo: ${modo}\n💰 Valor: ${formatarMoeda(valor)}\n\n👥 **Nenhum jogador na fila**`)
+            .setColor('#0099ff');
+
+        await interaction.message.edit({ embeds: [embedVazio] }).catch(() => {});
+
+        try {
+            const guild = interaction.guild;
+            
+            // Cria um canal de texto privado na mesma categoria da mensagem atual
+            const canalPrivado = await guild.channels.create({
+                name: `confronto-${player1.opcao}-${player2.opcao}`.toLowerCase().replace(/\s+/g, '-'),
+                type: ChannelType.GuildText,
+                parent: interaction.channel.parentId, // Mantém na mesma categoria se houver
+                permissionOverwrites: [
+                    {
+                        id: guild.id, // Oculta para @everyone (todo mundo)
+                        deny: [PermissionFlagsBits.ViewChannel],
+                    },
+                    {
+                        id: player1.id, // Libera para o Jogador 1
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: player2.id, // Libera para o Jogador 2
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: client.user.id, // Libera para o Bot gerenciar
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
+                    }
+                ]
+            });
+
+            const botoesConfirmacao = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('confirmar_aposta').setLabel('Confirmar Aposta / Regras').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId('desistir_aposta').setLabel('Desistir / Sair').setStyle(ButtonStyle.Danger)
+            );
+
+            await canalPrivado.send({
+                content: `🚨 **SALA PRIVADA DE CONFRONTO CRIADA!**\n\nJogadores: <@${player1.id}> (${player1.opcao}) vs <@${player2.id}> (${player2.opcao})\nValor: ${formatarMoeda(valor)}\n\n*Conversem por aqui, combinem o jogo e cliquem no botão abaixo para confirmar!*`,
+                components: [botoesConfirmacao]
+            });
+
+        } catch (e) {
+            console.log("Erro ao criar canal privado:", e);
         }
     }
 });
