@@ -567,9 +567,7 @@ client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
     if (message.content.startsWith('!painel ')) {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return message.reply('❌ Apenas administradores podem gerar os painéis.');
-        }
+        
 
         const args = message.content.split(' ');
         const tipo = args[1];
