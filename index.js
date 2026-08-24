@@ -429,4 +429,190 @@ if (interaction.isButton() && interaction.customId.includes('|')) {
     }
 });
 
+// ==========================================
+// SISTEMA DE FILAS MISTAS E PAINÉIS DE APOSTA
+// ==========================================
+
+const filasMistas = {
+    '2x2-misto': { formato: '2x2 Misto (1 Emu / 1 Mobile)', valor: 10.00, maxEmu: 1, maxTotal: 2, emus: [], mobiles: [] },
+    '3x3-misto': { formato: '3x3 Misto (2 Emu / 1 Mobile)', valor: 20.00, maxEmu: 2, maxTotal: 3, emus: [], mobiles: [] },
+    '4x4-misto': { formato: '4x4 Misto (3 Emu / 1 Mobile)', valor: 50.00, maxEmu: 3, maxTotal: 4, emus: [], mobiles: [] }
+};
+
+// Listener para cliques nos botões das filas mistas
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isButton()) return;
+
+    let chaveFila = interaction.customId.split('_').slice(0, 2).join('_');
+    if (!filasMistas[chaveFila]) return;
+
+    const fila = filasMistas[chaveFila];
+    const acao = interaction.customId.split('_').pop();
+    const usuario = interaction.user;
+
+    if (acao.startsWith('emu')) {
+        if (fila.emus.includes(usuario.id) || fila.mobiles.includes(usuario.id)) {
+            return interaction.reply({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
+        }
+
+        if (fila.emus.length >= fila.maxEmu) {
+            return interaction.reply({ content: '❌ As vagas de Emulador já estão esgotadas neste painel!', ephemeral: true });
+        }
+
+        fila.emus.push(usuario.id);
+        await interaction.reply({ content: `✅ Vaga de Emulador garantida na fila ${chaveFila}! (${fila.emus.length}/${fila.maxEmu})`, ephemeral: true });
+
+        await atualizarPainelMisto(interaction, chaveFila);
+        await verificarEFecharFilaMista(interaction, chaveFila);
+
+    } else if (acao === 'sair') {
+        const estavaNosEmu = fila.emus.includes(usuario.id);
+        const estavaNosMobile = fila.mobiles.includes(usuario.id);
+
+        if (!estavaNosEmu && !estavaNosMobile) {
+            return interaction.reply({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
+        }
+
+        fila.emus = fila.emus.filter(id => id !== usuario.id);
+        fila.mobiles = fila.mobiles.filter(id => id !== usuario.id);
+
+        await interaction.reply({ content: '🚪 Você saiu da fila com sucesso.', ephemeral: true });
+        await atualizarPainelMisto(interaction, chaveFila);
+    }
+});
+
+// Função para atualizar a embed do painel misto em tempo real
+async function atualizarPainelMisto(interaction, chaveFila) {
+    try {
+        const fila = filasMistas[chaveFila];
+        const mensagem = interaction.message;
+        const embedOriginal = mensagem.embeds[0];
+
+        if (!embedOriginal) return;
+
+        let listaTexto = '';
+        if (fila.emus.length === 0 && fila.mobiles.length === 0) {
+            listaTexto = 'Nenhum jogador na fila...';
+        } else {
+            const emusNomes = fila.emus.length > 0 ? fila.emus.map(id => `<@${id}> (Emu)`).join('\n') : '';
+            const mobilesNomes = fila.mobiles.length > 0 ? fila.mobiles.map(id => `<@${id}> (Mobile)`).join('\n') : '';
+            listaTexto = [emusNomes, mobilesNomes].filter(Boolean).join('\n');
+        }
+
+        const embedAtualizada = EmbedBuilder.from(embedOriginal)
+            .setFields(
+                { name: '🕹️ Modo', value: fila.formato, inline: true },
+                { name: '💰 Valor', value: `R$ ${fila.valor.toFixed(2)} (Taxa Adm: 15%)`, inline: true },
+                { name: '👥 Jogadores na Fila', value: listaTexto, inline: false }
+            );
+
+        await mensagem.edit({ embeds: [embedAtualizada] });
+    } catch (error) {
+        console.error('Erro ao atualizar painel misto:', error);
+    }
+}
+
+// Função que fecha a sala mista e cria o canal privado
+async function verificarEFecharFilaMista(interaction, chaveFila) {
+    const fila = filasMistas[chaveFila];
+    const totalAtual = fila.emus.length + fila.mobiles.length;
+
+    if (totalAtual >= fila.maxTotal) {
+        const guild = interaction.guild;
+        const todosJogadores = [...fila.emus, ...fila.mobiles];
+        const categoriaDestino = guild.channels.cache.find(c => c.name.includes('ÁREA ADM') || c.name.includes('MEDIADOR'));
+
+        try {
+            const canalPrivado = await guild.channels.create({
+                name: `🎮・partida-${chaveFila}-${Math.floor(Math.random() * 900 + 100)}`,
+                type: ChannelType.GuildText,
+                parent: categoriaDestino ? categoriaDestino.id : null,
+                permissionOverwrites: [
+                    {
+                        id: guild.id,
+                        denied: [PermissionsBitField.Flags.ViewChannel],
+                    },
+                    ...todosJogadores.map(userId => ({
+                        id: userId,
+                        allowed: [
+                            PermissionsBitField.Flags.ViewChannel, 
+                            PermissionsBitField.Flags.SendMessages,
+                            PermissionsBitField.Flags.ReadMessageHistory
+                        ]
+                    }))
+                ]
+            });
+
+            const mencoes = todosJogadores.map(id => `<@${id}>`).join(', ');
+
+            const embedSala = new EmbedBuilder()
+                .setColor('#00FF00')
+                .setTitle('🏆 SALA MISTA FECHADA - COMBINE A PARTIDA')
+                .setDescription(`Convocados: ${mencoes}\n\nA sala mista fechou! Enviem o comprovante do Pix contendo a **taxa administrativa de 15%** para o ADM responsável criar a partida.`)
+                .setTimestamp();
+
+            await canalPrivado.send({ content: `${mencoes}`, embeds: [embedSala] });
+
+            // Reseta a fila mista
+            fila.emus = [];
+            fila.mobiles = [];
+        } catch (err) {
+            console.error('Erro ao criar canal privado da partida mista:', err);
+        }
+    }
+}
+
+// Comando de texto para enviar o painel no canal: !painel 2x2-misto
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+    
+    if (message.content.startsWith('!painel ')) {
+        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return message.reply('❌ Apenas administradores podem gerar os painéis.');
+        }
+
+        const args = message.content.split(' ');
+        const tipo = args[1];
+
+        if (!filasMistas[tipo]) {
+            return message.reply('❌ Tipo inválido. Use: `2x2-misto`, `3x3-misto` ou `4x4-misto`.');
+        }
+
+        const config = filasMistas[tipo];
+        
+        const embedPainel = new EmbedBuilder()
+            .setColor('#FFD700')
+            .setTitle('⚡ CENTRAL DE APOSTAS - FILA MISTA')
+            .setDescription('Clique nos botões abaixo para entrar na vaga desejada.')
+            .addFields(
+                { name: '🕹️ Modo', value: config.formato, inline: true },
+                { name: '💰 Valor', value: `R$ ${config.valor.toFixed(2)} (Taxa Adm: 15%)`, inline: true },
+                { name: '👥 Jogadores na Fila', value: 'Nenhum jogador na fila...', inline: false }
+            )
+            .setImage('URL_DO_GIF_OU_BANNER_DA_ORG'); // Cole o link do seu banner/gif aqui
+
+        const row = new ActionRowBuilder();
+
+        // Cria os botões de emu baseados no limite configurado
+        for (let i = 1; i <= config.maxEmu; i++) {
+            row.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`${tipo}_emu_${i}`)
+                    .setLabel(`${i} Emu`)
+                    .setStyle(ButtonStyle.Success)
+            );
+        }
+
+        // Botão de sair padrão
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`${tipo}_sair`)
+                .setLabel('Sair da fila')
+                .setStyle(ButtonStyle.Danger)
+        );
+
+        await message.channel.send({ embeds: [embedPainel], components: [row] });
+        await message.delete().catch(() => {});
+    }
+});
 client.login(process.env.TOKEN);
