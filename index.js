@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 const http = require('http');
 
 const PORT = process.env.PORT || 10000;
@@ -21,6 +21,7 @@ const client = new Client({
 
 const filas = new Map();
 const confirmadosPartida = new Map();
+const CARGO_SUPORTE_ID = '1541235665960833145';
 
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -43,6 +44,48 @@ client.on('messageCreate', async (message) => {
         } catch (e) {
             console.log("Erro ao limpar mensagens:", e);
         }
+        return;
+    }
+
+    // Comando para postar o Painel de Tickets
+    if (message.content.startsWith('!ticket')) {
+        await message.delete().catch(() => {});
+
+        const embedTicket = new EmbedBuilder()
+            .setTitle('SAMURAI E-SPORTS | Central de Atendimento 🎫')
+            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
+            .setColor('#0099ff');
+
+        const menuRow = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId('criar_ticket')
+                .setPlaceholder('Selecione o ticket que deseja abrir')
+                .addOptions(
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel('Suporte')
+                        .setDescription('Auxílio, ajudas, dúvidas e propostas...')
+                        .setValue('suporte')
+                        .setEmoji('💬'),
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel('Reembolso')
+                        .setDescription('Adm pagou errado, sumiu e precisa de reembolso.')
+                        .setValue('reembolso')
+                        .setEmoji('💳'),
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel('Seja Mediador')
+                        .setDescription('Abra ticket aqui para fazer parte da equipe.')
+                        .setValue('seja_mediador')
+                        .setEmoji('🛡️'),
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel('Divulgação')
+                        .setDescription('Caso queira uma divulgação.')
+                        .setValue('divulgacao')
+                        .setEmoji('📢')
+                )
+        );
+
+        await message.channel.send({ embeds: [embedTicket], components: [menuRow] });
         return;
     }
 
@@ -143,9 +186,69 @@ client.on('messageCreate', async (message) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+    // Tratamento do Menu Suspenso de Tickets
+    if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate().catch(() => {});
+        }
+
+        const tipoTicket = interaction.values[0];
+        const guild = interaction.guild;
+        const usuario = interaction.user;
+
+        try {
+            const canalTicket = await guild.channels.create({
+                name: `ticket-${tipoTicket}-${usuario.username}`.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+                type: ChannelType.GuildText,
+                parent: interaction.channel.parentId,
+                permissionOverwrites: [
+                    { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+                    { id: usuario.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+                    { id: CARGO_SUPORTE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+                    { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+                ]
+            });
+
+            const embedTicketAberto = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                .setTitle(`SAMURAI E-SPORTS | Ticket - ${tipoTicket.toUpperCase()}`)
+                .setDescription(`Olá <@${usuario.id}>, seu ticket foi aberto com sucesso!\n\nAguarde um momento e nossa equipe de suporte (<@&${CARGO_SUPORTE_ID}>) já irá lhe atender.`);
+
+            const botaoFechar = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('fechar_ticket')
+                    .setLabel('Fechar Ticket')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+            await canalTicket.send({
+                content: `<@${usuario.id}> | <@&${CARGO_SUPORTE_ID}>`,
+                embeds: [embedTicketAberto],
+                components: [botaoFechar]
+            });
+
+            await interaction.followUp({ content: `✅ Seu ticket foi criado com sucesso em: <#${canalTicket.id}>`, ephemeral: true }).catch(() => {});
+        } catch (e) {
+            console.log("Erro ao criar canal de ticket:", e);
+            await interaction.followUp({ content: '❌ Ocorreu um erro ao criar o seu ticket.', ephemeral: true }).catch(() => {});
+        }
+        return;
+    }
+
+    if (interaction.isButton() && interaction.customId === 'fechar_ticket') {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate().catch(() => {});
+        }
+        await interaction.followUp({ content: '🔒 Este ticket será fechado em 3 segundos...', ephemeral: true }).catch(() => {});
+        setTimeout(async () => {
+            await interaction.channel.delete().catch(() => {});
+        }, 3000);
+        return;
+    }
+
     if (!interaction.isButton()) return;
 
-    // Responde instantaneamente para evitar o erro de timeout do Discord
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate().catch(() => {});
     }
