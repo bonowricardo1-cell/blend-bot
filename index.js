@@ -252,8 +252,11 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate().catch(() => {});
     }
-
-    if (interaction.customId.includes('|')) {
+if (interaction.isButton() && interaction.customId.includes('|')) {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate().catch(() => {});
+        }
+        
         const partes = interaction.customId.split('|');
         if (partes.length < 4) return;
 
