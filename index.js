@@ -1,6 +1,5 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField } = require('discord.js')
-    const http = require('http');
-
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField } = require('discord.js');
+const http = require('http');
 
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
@@ -187,7 +186,6 @@ client.on('messageCreate', async (message) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    // Tratamento do Menu Suspenso de Tickets
     if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
         if (!interaction.deferred && !interaction.replied) {
             await interaction.deferUpdate().catch(() => {});
@@ -250,10 +248,61 @@ client.on('interactionCreate', async (interaction) => {
 
     if (!interaction.isButton()) return;
 
-    if (!interaction.deferred && !interaction.replied) {
-        await interaction.deferUpdate().catch(() => {});
+    if (interaction.customId === 'cancelar_aposta') {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate().catch(() => {});
+        }
+        await interaction.followUp({ content: '❌ Aposta cancelada.', ephemeral: true }).catch(() => {});
+        setTimeout(async () => {
+            await interaction.channel.delete().catch(() => {});
+        }, 3000);
+        return;
     }
-if (interaction.isButton() && interaction.customId.includes('|')) {
+
+    const partesCustomId = interaction.customId.split('_');
+    const acaoConfirmar = partesCustomId[0];
+
+    if (acaoConfirmar === 'confirmar') {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate().catch(() => {});
+        }
+        const p1 = partesCustomId[1];
+        const valorAposta = parseFloat(partesCustomId[2]);
+        const taxaAdm = 0.15;
+        const admId = partesCustomId[3];
+        const canalId = interaction.channel.id;
+
+        let listaConfirmados = confirmadosPartida.get(canalId) || [];
+
+        if (listaConfirmados.includes(interaction.user.id)) {
+            return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true }).catch(() => {});
+        }
+
+        listaConfirmados.push(interaction.user.id);
+        confirmadosPartida.set(canalId, listaConfirmados);
+
+        const embedPagamento = new EmbedBuilder()
+            .setColor('#00FF00')
+            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setTitle('SAMURAI E-SPORTS | Pagamento Liberado 💳')
+            .setDescription('Fluxo de pagamento pronto para o confronto:')
+            .addFields(
+                { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)}`, inline: false },
+                { name: 'Taxa do ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
+                { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
+                { name: 'Chave Pix:', value: '`11999999999`', inline: false },
+                { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
+            );
+
+        await interaction.message.edit({
+            content: `🔒 **PARTIDA CONFIRMADA!** <@${p1}>`,
+            embeds: [embedPagamento],
+            components: []
+        }).catch(() => {});
+        return;
+    }
+
+    if (interaction.customId.includes('|')) {
         if (!interaction.deferred && !interaction.replied) {
             await interaction.deferUpdate().catch(() => {});
         }
@@ -381,53 +430,6 @@ if (interaction.isButton() && interaction.customId.includes('|')) {
         }
         return;
     }
-
-    if (interaction.customId === 'cancelar_aposta') {
-        await interaction.followUp({ content: '❌ Aposta cancelada.', ephemeral: true }).catch(() => {});
-        setTimeout(async () => {
-            await interaction.channel.delete().catch(() => {});
-        }, 3000);
-        return;
-    }
-
-    const partesCustomId = interaction.customId.split('_');
-    const acao = partesCustomId[0];
-
-    if (acao === 'confirmar') {
-        const p1 = partesCustomId[1];
-        const valorAposta = parseFloat(partesCustomId[2]);
-        const taxaAdm = 0.15;
-        const admId = partesCustomId[3];
-        const canalId = interaction.channel.id;
-
-        let listaConfirmados = confirmadosPartida.get(canalId) || [];
-
-        if (listaConfirmados.includes(interaction.user.id)) {
-            return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true }).catch(() => {});
-        }
-
-        listaConfirmados.push(interaction.user.id);
-        confirmadosPartida.set(canalId, listaConfirmados);
-
-        const embedPagamento = new EmbedBuilder()
-            .setColor('#00FF00')
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setTitle('SAMURAI E-SPORTS | Pagamento Liberado 💳')
-            .setDescription('Fluxo de pagamento pronto para o confronto:')
-            .addFields(
-                { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)}`, inline: false },
-                { name: 'Taxa do ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
-                { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
-                { name: 'Chave Pix:', value: '`11999999999`', inline: false },
-                { name: 'Nome completo:', value: 'Miguel Martins', inline: false }
-            );
-
-        await interaction.message.edit({
-            content: `🔒 **PARTIDA CONFIRMADA!** <@${p1}>`,
-            embeds: [embedPagamento],
-            components: []
-        }).catch(() => {});
-    }
 });
 
 // ==========================================
@@ -435,85 +437,41 @@ if (interaction.isButton() && interaction.customId.includes('|')) {
 // ==========================================
 
 const filasMistas = {
-    '2x2-misto': { formato: '2x2 Misto (1 Emu / 1 Mobile)', valor: 10.00, maxEmu: 1, maxTotal: 2, emus: [], mobiles: [] },
-    '3x3-misto': { formato: '3x3 Misto (2 Emu / 1 Mobile)', valor: 20.00, maxEmu: 2, maxTotal: 3, emus: [], mobiles: [] },
-    '4x4-misto': { formato: '4x4 Misto (3 Emu / 1 Mobile)', valor: 50.00, maxEmu: 3, maxTotal: 4, emus: [], mobiles: [] }
-};
-
-// Listener para cliques nos botões das filas mistas
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
-    let chaveFila = interaction.customId.split('_').slice(0, 2).join('_');
-    if (!filasMistas[chaveFila]) return;
-
-    const fila = filasMistas[chaveFila];
-    const acao = interaction.customId.split('_').pop();
-    const usuario = interaction.user;
-
-    if (acao.startsWith('emu')) {
-        if (fila.emus.includes(usuario.id) || fila.mobiles.includes(usuario.id)) {
-            return interaction.reply({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
-        }
-
-        if (fila.emus.length >= fila.maxEmu) {
-            return interaction.reply({ content: '❌ As vagas de Emulador já estão esgotadas neste painel!', ephemeral: true });
-        }
-
-        fila.emus.push(usuario.id);
-        await interaction.reply({ content: `✅ Vaga de Emulador garantida na fila ${chaveFila}! (${fila.emus.length}/${fila.maxEmu})`, ephemeral: true });
-
-        await atualizarPainelMisto(interaction, chaveFila);
-        await verificarEFecharFilaMista(interaction, chaveFila);
-
-    } else if (acao === 'sair') {
-        const estavaNosEmu = fila.emus.includes(usuario.id);
-        const estavaNosMobile = fila.mobiles.includes(usuario.id);
-
-        if (!estavaNosEmu && !estavaNosMobile) {
-            return interaction.reply({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
-        }
-
-        fila.emus = fila.emus.filter(id => id !== usuario.id);
-        fila.mobiles = fila.mobiles.filter(id => id !== usuario.id);
-
-        await interaction.reply({ content: '🚪 Você saiu da fila com sucesso.', ephemeral: true });
-        await atualizarPainelMisto(interaction, chaveFila);
-    }
-});
-
-const filasMistas = {
     '2x2-misto': { formato: '2x2 Misto (1 Emu / 1 Mobile)', valor: 10.00, maxEmu: 1, maxMobile: 1, maxTotal: 2, emus: [], mobiles: [] },
     '3x3-misto': { formato: '3x3 Misto (2 Emu / 1 Mobile)', valor: 20.00, maxEmu: 2, maxMobile: 1, maxTotal: 3, emus: [], mobiles: [] },
     '4x4-misto': { formato: '4x4 Misto (3 Emu / 1 Mobile)', valor: 50.00, maxEmu: 3, maxMobile: 1, maxTotal: 4, emus: [], mobiles: [] }
 };
 
-// Função para atualizar o painel misto em tempo real
 async function atualizarPainelMisto(interaction, chaveFila) {
-    const fila = filasMistas[chaveFila];
-    const mensagem = interaction.message;
+    try {
+        const fila = filasMistas[chaveFila];
+        const mensagem = interaction.message;
+        const embedOriginal = mensagem.embeds[0];
 
-    let listaJogadores = '';
-    if (fila.emus.length === 0 && fila.mobiles.length === 0) {
-        listaJogadores = 'Nenhum jogador na fila...';
-    } else {
-        const emusText = fila.emus.map((id, index) => `${index + 1}º Emu: <@${id}>`).join('\n');
-        const mobilesText = fila.mobiles.map((id, index) => `${index + 1}º Mobile: <@${id}>`).join('\n');
-        listaJogadores = [emusText, mobilesText].filter(Boolean).join('\n');
+        if (!embedOriginal) return;
+
+        let listaTexto = '';
+        if (fila.emus.length === 0 && fila.mobiles.length === 0) {
+            listaTexto = 'Nenhum jogador na fila...';
+        } else {
+            const emusNomes = fila.emus.length > 0 ? fila.emus.map(id => `<@${id}> (Emu)`).join('\n') : '';
+            const mobilesNomes = fila.mobiles.length > 0 ? fila.mobiles.map(id => `<@${id}> (Mobile)`).join('\n') : '';
+            listaTexto = [emusNomes, mobilesNomes].filter(Boolean).join('\n');
+        }
+
+        const embedAtualizada = EmbedBuilder.from(embedOriginal)
+            .setFields(
+                { name: '🎮 Modo', value: fila.formato, inline: true },
+                { name: '💰 Valor', value: `R$${fila.valor.toFixed(2)} (Taxa Adm: 15%)`, inline: true },
+                { name: '👥 Jogadores na Fila', value: listaTexto, inline: false }
+            );
+
+        await mensagem.edit({ embeds: [embedAtualizada] });
+    } catch (err) {
+        console.error('Erro ao atualizar painel misto:', err);
     }
-
-    const embedAtual = mensagem.embeds[0];
-    const novoEmbed = EmbedBuilder.from(embedAtual)
-        .setFields(
-            { name: '🎮 Modo', value: fila.formato, inline: true },
-            { name: '💰 Valor', value: `R$${fila.valor.toFixed(2)} (Taxa Adm: 15%)`, inline: true },
-            { name: '👥 Jogadores na Fila', value: listaJogadores, inline: false }
-        );
-
-    await mensagem.edit({ embeds: [novoEmbed] }).catch(() => {});
 }
 
-// Função para verificar se lotou e criar o canal privado da partida
 async function verificarEFecharFilaMista(interaction, chaveFila) {
     const fila = filasMistas[chaveFila];
     const totalReal = fila.emus.length + fila.mobiles.length;
@@ -547,7 +505,6 @@ async function verificarEFecharFilaMista(interaction, chaveFila) {
 
             await canalPrivado.send({ content: `🎉 **Fila lotada!** Partida iniciada entre: ${todosJogadores.map(id => `<@${id}>`).join(', ')}` });
             
-            // Reseta a fila após fechar
             fila.emus = [];
             fila.mobiles = [];
             
@@ -559,42 +516,45 @@ async function verificarEFecharFilaMista(interaction, chaveFila) {
     }
 }
 
-// Listener para cliques nos botões das filas mistas
 client.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
     let chaveFila = interaction.customId.split('_')[0];
     if (!filasMistas[chaveFila]) return;
 
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {});
+    }
+
     const fila = filasMistas[chaveFila];
     const partes = interaction.customId.split('_');
-    const acao = partes[1]; // 'emu', 'mobile' ou 'sair'
+    const acao = partes[1]; 
     const usuario = interaction.user;
 
     if (acao === 'emu') {
         if (fila.emus.includes(usuario.id) || fila.mobiles.includes(usuario.id)) {
-            return interaction.reply({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
+            return interaction.followUp({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
         }
         if (fila.emus.length >= fila.maxEmu) {
-            return interaction.reply({ content: '❌ As vagas de Emulador já estão esgotadas neste painel!', ephemeral: true });
+            return interaction.followUp({ content: '❌ As vagas de Emulador já estão esgotadas neste painel!', ephemeral: true });
         }
 
         fila.emus.push(usuario.id);
-        await interaction.reply({ content: `✅ Vaga de Emulador garantida! (${fila.emus.length}/${fila.maxEmu})`, ephemeral: true });
+        await interaction.followUp({ content: `✅ Vaga de Emulador garantida! (${fila.emus.length}/${fila.maxEmu})`, ephemeral: true });
 
         await atualizarPainelMisto(interaction, chaveFila);
         await verificarEFecharFilaMista(interaction, chaveFila);
 
     } else if (acao === 'mobile') {
         if (fila.emus.includes(usuario.id) || fila.mobiles.includes(usuario.id)) {
-            return interaction.reply({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
+            return interaction.followUp({ content: '❌ Você já está em alguma vaga desta fila!', ephemeral: true });
         }
         if (fila.mobiles.length >= fila.maxMobile) {
-            return interaction.reply({ content: '❌ As vagas de Mobile já estão esgotadas neste painel!', ephemeral: true });
+            return interaction.followUp({ content: '❌ As vagas de Mobile já estão esgotadas neste painel!', ephemeral: true });
         }
 
         fila.mobiles.push(usuario.id);
-        await interaction.reply({ content: `✅ Vaga de Mobile garantida! (${fila.mobiles.length}/${fila.maxMobile})`, ephemeral: true });
+        await interaction.followUp({ content: `✅ Vaga de Mobile garantida! (${fila.mobiles.length}/${fila.maxMobile})`, ephemeral: true });
 
         await atualizarPainelMisto(interaction, chaveFila);
         await verificarEFecharFilaMista(interaction, chaveFila);
@@ -604,18 +564,17 @@ client.on('interactionCreate', async interaction => {
         const estavaNosMobile = fila.mobiles.includes(usuario.id);
 
         if (!estavaNosEmu && !estavaNosMobile) {
-            return interaction.reply({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
+            return interaction.followUp({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
         }
 
         fila.emus = fila.emus.filter(id => id !== usuario.id);
         fila.mobiles = fila.mobiles.filter(id => id !== usuario.id);
 
-        await interaction.reply({ content: '🚪 Você saiu da fila com sucesso.', ephemeral: true });
+        await interaction.followUp({ content: '🚪 Você saiu da fila com sucesso.', ephemeral: true });
         await atualizarPainelMisto(interaction, chaveFila);
     }
 });
 
-// Comando para enviar o painel misto: !painel 2x2-misto
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
@@ -641,7 +600,6 @@ client.on('messageCreate', async message => {
 
         const linha = new ActionRowBuilder();
 
-        // Botões de Emulador
         for (let i = 1; i <= configuracao.maxEmu; i++) {
             linha.addComponents(
                 new ButtonBuilder()
@@ -651,7 +609,6 @@ client.on('messageCreate', async message => {
             );
         }
 
-        // Botões de Mobile
         for (let i = 1; i <= configuracao.maxMobile; i++) {
             linha.addComponents(
                 new ButtonBuilder()
@@ -661,7 +618,6 @@ client.on('messageCreate', async message => {
             );
         }
 
-        // Botão de Sair
         linha.addComponents(
             new ButtonBuilder()
                 .setCustomId(`${tipo}_sair`)
@@ -673,3 +629,5 @@ client.on('messageCreate', async message => {
         await message.delete().catch(() => {});
     }
 });
+
+client.login(process.env.DISCORD_TOKEN);
