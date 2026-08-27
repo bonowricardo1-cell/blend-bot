@@ -38,6 +38,9 @@ client.once('ready', () => {
     console.log(`Bot online como: ${client.user.tag}`);
 });
 
+// ==========================================
+// COMANDO DE LIMPEZA E TICKETS
+// ==========================================
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
@@ -138,6 +141,9 @@ client.on('messageCreate', async (message) => {
     await message.channel.send({ embeds: [embed], components: [botoes] });
 });
 
+// ==========================================
+// SISTEMA DE INTERAÇÕES E BOTÕES
+// ==========================================
 client.on('interactionCreate', async (interaction) => {
     if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
         if (!interaction.deferred && !interaction.replied) {
@@ -269,12 +275,12 @@ client.on('interactionCreate', async (interaction) => {
             if (fila.emus.includes(usuario.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
             }
-            if (fila.emus.length >= fila.maxEmu) {
-                return interaction.followUp({ content: '❌ As vagas de Emulador já estão esgotadas neste painel!', ephemeral: true });
+            if (fila.emus.length >= fila.maxTotal) {
+                return interaction.followUp({ content: '❌ As vagas já estão esgotadas neste painel!', ephemeral: true });
             }
 
             fila.emus.push(usuario.id);
-            await interaction.followUp({ content: `✅ Vaga de Emulador garantida! (${fila.emus.length}/${fila.maxEmu})`, ephemeral: true });
+            await interaction.followUp({ content: `✅ Vaga garantida!`, ephemeral: true });
 
             await atualizarPainelMisto(interaction, chaveFilaMista);
             await verificarEFecharFilaMista(interaction, chaveFilaMista);
@@ -320,17 +326,6 @@ client.on('interactionCreate', async (interaction) => {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
 
-            let totalFilasAtivas = 0;
-            for (const [, jogadores] of filas.entries()) {
-                if (jogadores.some(j => j.id === usuarioId)) {
-                    totalFilasAtivas++;
-                }
-            }
-
-            if (totalFilasAtivas >= 3) {
-                return interaction.followUp({ content: '❌ Você atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true }).catch(() => {});
-            }
-
             listaJogadores.push({ id: usuarioId, opcao: opcaoEscolhida });
 
         } else if (acao === 'sair') {
@@ -358,7 +353,6 @@ client.on('interactionCreate', async (interaction) => {
 
         if (listaJogadores.length >= maxJogadores) {
             const jogadoresPartida = [...listaJogadores];
-
             filas.set(chaveFila, []);
 
             const embedVazio = new EmbedBuilder()
@@ -388,7 +382,6 @@ client.on('interactionCreate', async (interaction) => {
                 });
 
                 confirmadosPartida.set(canalPrivado.id, []);
-
                 const numPartida = Math.floor(Math.random() * 900000) + 100000;
 
                 const embedApostaCriada = new EmbedBuilder()
@@ -429,53 +422,60 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 // ==========================================
-// SISTEMA DE FILAS MISTAS E PAINÉIS
+// SISTEMA DE FILAS MISTAS (COM BOTÕES ESPECÍFICOS)
 // ==========================================
 
 const filasMistas = {
-    '2x2-misto': { formato: '2x2 Misto', valor: 5.00, maxEmu: 2, maxTotal: 2, emus: [] },
-    '3x3-misto': { formato: '3x3 Misto', valor: 5.00, maxEmu: 3, maxTotal: 3, emus: [] },
-    '4x4-misto': { formato: '4x4 Misto', valor: 5.00, maxEmu: 4, maxTotal: 4, emus: [] }
+    '2x2-misto': { formato: '2x2 Misto', valor: 5.00, maxTotal: 2, emus: [] },
+    '3x3-misto': { formato: '3x3 Misto', valor: 5.00, maxTotal: 2, emus: [] },
+    '4x4-misto': { formato: '4x4 Misto', valor: 5.00, maxTotal: 2, emus: [] }
 };
+
+function criarBotoesMisto(chaveFila) {
+    const linha = new ActionRowBuilder();
+
+    if (chaveFila === '2x2-misto') {
+        linha.addComponents(
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary)
+        );
+    } else if (chaveFila === '3x3-misto') {
+        linha.addComponents(
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary)
+        );
+    } else if (chaveFila === '4x4-misto') {
+        linha.addComponents(
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`${chaveFila}_emu_3`).setLabel('3º Emu').setStyle(ButtonStyle.Secondary)
+        );
+    }
+
+    linha.addComponents(
+        new ButtonBuilder().setCustomId(`${chaveFila}_sair`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger)
+    );
+
+    return linha;
+}
 
 async function atualizarPainelMisto(interaction, chaveFila) {
     try {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
-        const embedOriginal = mensagem.embeds[0];
 
-        if (!embedOriginal) return;
-
-        let listaTexto = `Jogadores:\nNenhum jogador na fila`;
+        let listaTexto = `Nenhum jogador na fila`;
         if (fila.emus.length > 0) {
-            listaTexto = `Jogadores:\n` + fila.emus.map(id => `<@${id}> | ${fila.emus.indexOf(id) + 1} Emu`).join('\n');
+            listaTexto = fila.emus.map(id => `<@${id}> | ${fila.emus.indexOf(id) + 1} Emu`).join('\n');
         }
 
-        const taxaAdm = 0.15;
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
             .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Valor:\n${formatarMoeda(fila.valor)}\n\n👤 ${listaTexto}`)
+            .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Valor:\n${formatarMoeda(fila.valor)}\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
-        const linha = new ActionRowBuilder();
-        for (let i = 1; i <= fila.maxEmu; i++) {
-            linha.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`${chaveFila}_emu_${i}`)
-                    .setLabel(`${i}º Emu`)
-                    .setStyle(ButtonStyle.Secondary)
-            );
-        }
-
-        linha.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`${chaveFila}_sair`)
-                .setLabel('Sair da fila')
-                .setStyle(ButtonStyle.Danger)
-        );
-
-        await mensagem.edit({ embeds: [embedAtualizada], components: [linha] });
+        const linhaBotoes = criarBotoesMisto(chaveFila);
+        await mensagem.edit({ embeds: [embedAtualizada], components: [linhaBotoes] });
     } catch (err) {
         console.error('Erro ao atualizar painel misto:', err);
     }
@@ -577,24 +577,9 @@ client.on('messageCreate', async message => {
             .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Valor:\n${formatarMoeda(configuracao.valor)}\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
-        const linha = new ActionRowBuilder();
-        for (let i = 1; i <= configuracao.maxEmu; i++) {
-            linha.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`${tipo}_emu_${i}`)
-                    .setLabel(`${i}º Emu`)
-                    .setStyle(ButtonStyle.Secondary)
-            );
-        }
+        const linhaBotoes = criarBotoesMisto(tipo);
 
-        linha.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`${tipo}_sair`)
-                .setLabel('Sair da fila')
-                .setStyle(ButtonStyle.Danger)
-        );
-
-        await message.channel.send({ embeds: [embedPainel], components: [linha] });
+        await message.channel.send({ embeds: [embedPainel], components: [linhaBotoes] });
         await message.delete().catch(() => {});
     }
 });
