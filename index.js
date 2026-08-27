@@ -583,7 +583,116 @@ client.on('messageCreate', async message => {
 
         await message.channel.send({ embeds: [embedPainel], components: [linhaBotoes] });
         await message.delete().catch(() => {});
+    } 
+});
+// --- SISTEMA DE FILA DE MEDIADORES E CONFIG PIX (SAMURAI E-SPORTS) ---
+
+// Armazenamento em memória da fila e da config do Pix
+let filaMediadores = [];
+let dadosPix = {
+    chave: "Não configurada",
+    nome: "Não configurado"
+};
+
+// 1. COMANDO PARA GERAR O PAINEL DA FILA DE MEDIADORES
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    // Comando para enviar o painel da fila (Ex: !fila)
+    if (message.content.toLowerCase() === '!fila') {
+        // Verifica se quem mandou é o dono ou staff (ajuste conforme seu cargo/ID se precisar)
+        
+        const rowBotoes1 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('fila_entrar').setLabel('Entrar').setStyle(ButtonStyle.Primary).setEmoji('➕'),
+            new ButtonBuilder().setCustomId('fila_sair').setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('➖'),
+            new ButtonBuilder().setCustomId('fila_atualizar').setLabel('Atualizar').setStyle(ButtonStyle.Secondary).setEmoji('🔄')
+        );
+
+        const rowBotoes2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('fila_limpar').setLabel('Limpar Fila').setStyle(ButtonStyle.Danger).setEmoji('🗑️')
+        );
+
+        const embedFila = new EmbedBuilder()
+            .setColor('#2b2d31')
+            .setTitle('⚔️ SAMURAI E-SPORTS | Fila de Mediadores')
+            .setDescription(`**O mediador(es) na fila:**\n${filaMediadores.length > 0 ? filaMediadores.map((m, index) => `${index + 1}. <@${m}>`).join('\n') : '⚠️ Atenção – Nenhum mediador na fila\n*Clique em "Entrar" para se adicionar à fila*'}`)
+            .setFooter({ text: 'Sistema de Fila Automatizado • Samurai' })
+            .setTimestamp();
+
+        await message.channel.send({ embeds: [embedFila], components: [rowBotoes1, rowBotoes2] });
+        await message.delete().catch(() => {});
+    }
+
+    // 2. COMANDO PARA CONFIGURAR O PIX (Ex: !setpix ChavePix NomeCompleto)
+    if (message.content.toLowerCase().startsWith('!setpix')) {
+        const args = message.content.slice(8).trim().split(' | ');
+        if (args.length < 2) {
+            return message.reply('❌ Use o formato correto: `!setpix SUA_CHAVE | NOME DO TITULAR`');
+        }
+
+        dadosPix.chave = args[0];
+        dadosPix.nome = args[1];
+
+        const embedPix = new EmbedBuilder()
+            .setColor('Green')
+            .setTitle('💰 PIX DA ORG CONFIGURADO')
+            .setDescription(`**Chave PIX:** \`${dadosPix.chave}\`\n**Titular:** \`${dadosPix.nome}\``)
+            .setTimestamp();
+
+        return message.reply({ embeds: [embedPix] });
     }
 });
 
+// 3. GERENCIAMENTO DOS BOTÕES DA FILA
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isButton()) return;
+
+    const { customId, user, message } = interaction;
+
+    if (customId === 'fila_entrar') {
+        if (!filaMediadores.includes(user.id)) {
+            filaMediadores.push(user.id);
+        }
+        await atualizarPainelFila(message);
+        return interaction.reply({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true });
+    }
+
+    if (customId === 'fila_sair') {
+        filaMediadores = filaMediadores.filter(id => id !== user.id);
+        await atualizarPainelFila(message);
+        return interaction.reply({ content: '❌ Você saiu da fila de mediadores.', ephemeral: true });
+    }
+
+    if (customId === 'fila_atualizar') {
+        await atualizarPainelFila(message);
+        return interaction.reply({ content: '🔄 Fila atualizada!', ephemeral: true });
+    }
+
+    if (customId === 'fila_limpar') {
+        // REGRA: Apenas o dono ou cargos administrativos principais podem limpar
+        // Verificando se o ID do usuário é o dono ou se tem permissão de Administrador
+        const cargoDonoID = 'SEU_CARGO_DONO_OU_ID'; // Opcional: restrição extra por ID/Cargo
+        
+        // Exemplo simples verificando se é Administrador do servidor
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: '❌ Apenas o Dono ou Administradores podem limpar a fila!', ephemeral: true });
+        }
+
+        filaMediadores = [];
+        await atualizarPainelFila(message);
+        return interaction.reply({ content: '🗑️ A fila de mediadores foi limpa com sucesso!', ephemeral: true });
+    }
+});
+
+// Função auxiliar para atualizar o visual da mensagem da fila
+async function atualizarPainelFila(message) {
+    const embedAtualizado = new EmbedBuilder()
+        .setColor('#2b2d31')
+        .setTitle('⚔️ SAMURAI E-SPORTS | Fila de Mediadores')
+        .setDescription(`**O mediador(es) na fila:**\n${filaMediadores.length > 0 ? filaMediadores.map((m, index) => `${index + 1}. <@${m}>`).join('\n') : '⚠️ Atenção – Nenhum mediador na fila\n*Clique em "Entrar" para se adicionar à fila*'}`)
+        .setFooter({ text: 'Sistema de Fila Automatizado • Samurai' })
+        .setTimestamp();
+
+    await message.edit({ embeds: [embedAtualizado] }).catch(() => {});
+}
 client.login(process.env.DISCORD_TOKEN);
