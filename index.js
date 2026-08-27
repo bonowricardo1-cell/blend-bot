@@ -679,4 +679,227 @@ if (interaction.isButton() && interaction.customId === 'fechar_ticket') {
         await message.edit({ embeds: [embedAtualizado] }).catch(() => {});
     }
 
-    client.login(process.env.DISCORD_TOKEN);
+    
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
+const qrcode = require('qrcode');
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ]
+});
+
+// Banco de dados em memória para demonstração/organização
+const db = {
+    pixConfig: {}, // idUsuario: { chave, nome, mensagem }
+    fila: [],
+    mediadoresRank: {} // idUsuario: totalFinalizadas
+};
+
+client.once('ready', () => {
+    console.log(`Bot logado como ${client.user.tag}! Sistema Samurai E-Sports operando com sucesso.`);
+});
+
+// ==========================================
+// COMANDOS DE PAINEL (!pix e !mediador)
+// ==========================================
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    // Comando !pix para abrir o painel de configuração de Pix no canal #config-pix
+    if (message.content === '!pix') {
+        const embed = new EmbedBuilder()
+            .setTitle('⚡ Configuração de Pix & Mediação')
+            .setDescription('Clique no botão abaixo para configurar sua **Chave Pix**, **Nome do Titular** e **Mensagem de Pré-Pagamento**.')
+            .setColor('#FF0000');
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_config_pix')
+                .setLabel('Configurar Pix')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('💳'),
+            new ButtonBuilder()
+                .setCustomId('btn_ver_qrcode')
+                .setLabel('Ver QR-Code')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('📷'),
+            new ButtonBuilder()
+                .setCustomId('btn_testar_pix')
+                .setLabel('Testar Pix')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🧪')
+        );
+
+        await message.channel.send({ embeds: [embed], components: [row] });
+        await message.delete().catch(() => {});
+    }
+
+    // Comando !mediador para enviar o painel da Fila de Mediadores
+    if (message.content === '!mediador') {
+        const embed = new EmbedBuilder()
+            .setTitle('⚔️ SAMURAI E-SPORTS | FILA DE MEDIADORES')
+            .setDescription('Clique em **Entrar na Fila** para assumir uma partida ou em **Sair da Fila** caso precise sair.')
+            .addFields({ name: 'Status da Fila', value: 'Nenhum jogador na fila no momento.', inline: false })
+            .setColor('#FF0000');
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_entrar_fila')
+                .setLabel('Entrar na Fila')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('✅'),
+            new ButtonBuilder()
+                .setCustomId('btn_sair_fila')
+                .setLabel('Sair da Fila')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('❌'),
+            new ButtonBuilder()
+                .setCustomId('btn_atualizar_fila')
+                .setLabel('Atualizar')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('🔄'),
+            new ButtonBuilder()
+                .setCustomId('btn_reset_fila')
+                .setLabel('Reset')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('⚙️')
+        );
+
+        await message.channel.send({ embeds: [embed], components: [row] });
+        await message.delete().catch(() => {});
+    }
+});
+
+// ==========================================
+// INTERAÇÕES (BOTÕES E MODAIS)
+// ==========================================
+client.on('interactionCreate', async interaction => {
+    if (interaction.isButton()) {
+        // ABRIR MODAL DE CONFIGURAÇÃO DE PIX
+        if (interaction.customId === 'btn_config_pix') {
+            const modal = new ModalBuilder()
+                .setCustomId('modal_config_pix')
+                .setTitle('Configuração de Mediação');
+
+            const chaveInput = new TextInputBuilder()
+                .setCustomId('input_chave_pix')
+                .setLabel('Chave Pix')
+                .setPlaceholder('Insira a sua chave pix...')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+
+            const nomeInput = new TextInputBuilder()
+                .setCustomId('input_nome_pix')
+                .setLabel('Nome da Chave Pix')
+                .setPlaceholder('Insira o nome da chave pix.')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+
+            const msgInput = new TextInputBuilder()
+                .setCustomId('input_msg_pix')
+                .setLabel('Mensagem de Pré-Pagamento')
+                .setPlaceholder('Ex: NÃO ACEITO INTER, PICPAY, MERCADO PAGO')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(false);
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(chaveInput),
+                new ActionRowBuilder().addComponents(nomeInput),
+                new ActionRowBuilder().addComponents(msgInput)
+            );
+
+            await interaction.showModal(modal);
+        }
+
+        // VER QR-CODE SALVO
+        else if (interaction.customId === 'btn_ver_qrcode') {
+            const config = db.pixConfig[interaction.user.id];
+            if (!config) {
+                return interaction.reply({ content: '❌ Você ainda não configurou sua chave Pix! Clique em "Configurar Pix".', ephemeral: true });
+            }
+
+            try {
+                const qrBuffer = await qrcode.toBuffer(config.chave);
+                await interaction.reply({
+                    content: `📷 **QR Code da Chave:** \`${config.chave}\`\n👤 **Titular:** ${config.nome}`,
+                    files: [{ attachment: qrBuffer, name: 'qrcode.png' }],
+                    ephemeral: true
+                });
+            } catch (err) {
+                await interaction.reply({ content: '❌ Erro ao gerar o QR Code.', ephemeral: true });
+            }
+        }
+
+        // TESTAR PIX (VISUALIZAÇÃO DE COMO FICA PARA OS JOGADORES)
+        else if (interaction.customId === 'btn_testar_pix') {
+            const config = db.pixConfig[interaction.user.id];
+            if (!config) {
+                return interaction.reply({ content: '❌ Configure seu Pix primeiro antes de testar!', ephemeral: true });
+            }
+
+            try {
+                const qrBuffer = await qrcode.toBuffer(config.chave);
+                const testEmbed = new EmbedBuilder()
+                    .setTitle('💳 Painel de Pagamento (Teste)')
+                    .setDescription(`**Mediador:** <@${interaction.user.id}>\n**Chave Pix:** \`${config.chave}\`\n**Titular:** ${config.nome}\n\n**Aviso:** ${config.mensagem || 'Nenhuma restrição informada.'}`)
+                    .setColor('#FF0000');
+
+                await interaction.reply({
+                    content: '🧪 Aqui está a pré-visualização de como seu painel de pagamento aparece para os jogadores:',
+                    embeds: [testEmbed],
+                    files: [{ attachment: qrBuffer, name: 'qrcode.png' }],
+                    ephemeral: true
+                });
+            } catch (err) {
+                await interaction.reply({ content: '❌ Erro ao gerar o teste do Pix.', ephemeral: true });
+            }
+        }
+
+        // BOTÕES DA FILA DE MEDIADORES
+        else if (interaction.customId === 'btn_entrar_fila') {
+            if (!db.fila.includes(interaction.user.id)) {
+                db.fila.push(interaction.user.id);
+            }
+            await interaction.reply({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true });
+        }
+        else if (interaction.customId === 'btn_sair_fila') {
+            db.fila = db.fila.filter(id => id !== interaction.user.id);
+            await interaction.reply({ content: '❌ Você saiu da fila de mediadores.', ephemeral: true });
+        }
+        else if (interaction.customId === 'btn_atualizar_fila') {
+            await interaction.reply({ content: `🔄 Fila atualizada. Total na fila: ${db.fila.length} usuário(s).`, ephemeral: true });
+        }
+        else if (interaction.customId === 'btn_reset_fila') {
+            db.fila = [];
+            await interaction.reply({ content: '⚙️ Fila resetada com sucesso.', ephemeral: true });
+        }
+
+        // CONTROLES DENTRO DA SALA DE PARTIDA (FINALIZAR OU DEFINIR VENCEDOR)
+        else if (interaction.customId === 'btn_control_finalizar') {
+            await interaction.reply({ content: '🔒 Aposta finalizada/cancelada pelo administrador. Este canal será arquivado.', ephemeral: true });
+            // Lógica para deletar canal após alguns segundos se necessário
+        }
+    }
+
+    // SUBMIT DO MODAL DE CONFIGURAÇÃO DE PIX
+    if (interaction.isModalSubmit()) {
+        if (interaction.customId === 'modal_config_pix') {
+            const chave = interaction.fields.getTextInputValue('input_chave_pix');
+            const nome = interaction.fields.getTextInputValue('input_nome_pix');
+            const mensagem = interaction.fields.getTextInputValue('input_msg_pix');
+
+            db.pixConfig[interaction.user.id] = { chave, nome, mensagem };
+
+            await interaction.reply({
+                content: `✅ **Configuração salva com sucesso!**\n\n🔑 **Chave:** \`${chave}\`\n👤 **Nome:** ${nome}\n📝 **Mensagem:** ${mensagem || 'Nenhuma'}`,
+                ephemeral: true
+            });
+        }
+    }
+});
+
+client.login(process.env.TOKEN);
