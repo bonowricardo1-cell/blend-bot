@@ -462,6 +462,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
     try {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
+        const taxaAdm = 0.15;
 
         let listaTexto = `Nenhum jogador na fila`;
         if (fila.emus.length > 0) {
@@ -471,7 +472,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
             .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Valor:\n${formatarMoeda(fila.valor)}\n\n👤 Jogadores:\n${listaTexto}`)
+            .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
         const linhaBotoes = criarBotoesMisto(chaveFila);
@@ -523,7 +524,7 @@ async function verificarEFecharFilaMista(interaction, chaveFila) {
                     { name: 'Partida:', value: `${numPartida}`, inline: false },
                     { name: 'Modo:', value: `${fila.formato.toUpperCase()}`, inline: false },
                     { name: 'Valor da Aposta:', value: `${formatarMoeda(fila.valor)}`, inline: false },
-                    { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm * fila.valor)}`, inline: false },
+                    { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
                     { name: 'Jogadores:', value: `${todosJogadores.map(id => `<@${id}>`).join(', ')}`, inline: false },
                     { name: 'Mediador:', value: `<@${admId}>`, inline: false }
                 );
@@ -570,11 +571,12 @@ client.on('messageCreate', async message => {
 
         const configuracao = filasMistas[tipo];
         configuracao.valor = isNaN(valorArg) ? 5.00 : valorArg;
+        const taxaAdm = 0.15;
 
         const embedPainel = new EmbedBuilder()
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
             .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Valor:\n${formatarMoeda(configuracao.valor)}\n\n👤 Jogadores:\nNenhum jogador na fila`)
+            .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
         const linhaBotoes = criarBotoesMisto(tipo);
