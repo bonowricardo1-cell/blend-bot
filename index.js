@@ -309,6 +309,374 @@ client.on('interactionCreate', async (interaction) => {
         }
         return;
     }
+if (interaction.isButton() && interaction.customId === 'fechar_ticket') {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate().catch(() => {});
+            }
+            await interaction.followUp({ content: '🔒 Este ticket será fechado em 3 segundos...', ephemeral: true }).catch(() => {});
+            setTimeout(async () => {
+                await interaction.channel.delete().catch(() => {});
+            }, 3000);
+            return;
+        }
 
-    if (interaction.isButton() && interaction.customId === 'fechar_ticket') {
-        if (!interaction
+        if (!interaction.isButton()) return;
+
+        if (interaction.customId === 'cancelar_aposta') {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate().catch(() => {});
+            }
+            await interaction.followUp({ content: '❌ Aposta cancelada.', ephemeral: true }).catch(() => {});
+            setTimeout(async () => {
+                await interaction.channel.delete().catch(() => {});
+            }, 3000);
+            return;
+        }
+
+        const partesCustomId = interaction.customId.split('_');
+        const acaoConfirmar = partesCustomId[0];
+
+        if (acaoConfirmar === 'confirmar') {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate().catch(() => {});
+            }
+            const valorAposta = parseFloat(partesCustomId[2]);
+            const taxaAdm = 0.15;
+            const admId = partesCustomId[3];
+            const canalId = interaction.channel.id;
+
+            let listaConfirmados = confirmadosPartida.get(canalId) || [];
+
+            if (listaConfirmados.includes(interaction.user.id)) {
+                return interaction.followUp({ content: '⚠️ Você já confirmou esta partida!', ephemeral: true }).catch(() => {});
+            }
+
+            listaConfirmados.push(interaction.user.id);
+            confirmadosPartida.set(canalId, listaConfirmados);
+
+            const embedPagamento = new EmbedBuilder()
+                .setColor('#00FF00')
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                .setTitle('SAMURAI E-SPORTS | Pagamento Liberado 💳')
+                .setDescription('Fluxo de pagamento pronto para o confronto:')
+                .addFields(
+                    { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)}`, inline: false },
+                    { name: 'Taxa do ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
+                    { name: 'Mediador responsável:', value: `<@${admId}>`, inline: false },
+                    { name: 'Chave Pix:', value: `\`${dadosPix.chave}\``, inline: false },
+                    { name: 'Nome completo:', value: `${dadosPix.nome}`, inline: false }
+                );
+
+            await interaction.message.edit({
+                content: `🔒 **PARTIDA CONFIRMADA!**`,
+                embeds: [embedPagamento],
+                components: []
+            }).catch(() => {});
+            return;
+        }
+
+        let chaveFilaMista = interaction.customId.split('_')[0];
+        if (filasMistas[chaveFilaMista]) {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate().catch(() => {});
+            }
+
+            const fila = filasMistas[chaveFilaMista];
+            const partes = interaction.customId.split('_');
+            const acao = partes[1]; 
+            const usuario = interaction.user;
+
+            if (acao === 'emu') {
+                if (fila.emus.includes(usuario.id)) {
+                    return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
+                }
+                if (fila.emus.length >= fila.maxTotal) {
+                    return interaction.followUp({ content: '❌ As vagas já estão esgotadas neste painel!', ephemeral: true });
+                }
+
+                fila.emus.push(usuario.id);
+                await interaction.followUp({ content: `✅ Vaga garantida!`, ephemeral: true });
+
+                await atualizarPainelMisto(interaction, chaveFilaMista);
+                await verificarEFecharFilaMista(interaction, chaveFilaMista);
+
+            } else if (acao === 'sair') {
+                const estavaNosEmu = fila.emus.includes(usuario.id);
+
+                if (!estavaNosEmu) {
+                    return interaction.followUp({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
+                }
+
+                fila.emus = fila.emus.filter(id => id !== usuario.id);
+
+                await interaction.followUp({ content: '🚪 Você saiu da fila com sucesso.', ephemeral: true });
+                await atualizarPainelMisto(interaction, chaveFilaMista);
+            }
+            return;
+        }
+
+        if (interaction.customId.includes('|')) {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate().catch(() => {});
+            }
+            
+            const partes = interaction.customId.split('|');
+            if (partes.length < 4) return;
+
+            const [acao, modo, valorStr, opcaoEscolhida] = partes;
+            const valor = parseFloat(valorStr);
+            const taxaAdm = 0.15;
+            const chaveFila = `${interaction.message.id}`;
+            const usuarioId = interaction.user.id;
+            const maxJogadores = limitesFila[modo.toLowerCase()] || 2;
+
+            if (!filas.has(chaveFila)) {
+                filas.set(chaveFila, []);
+            }
+            let listaJogadores = filas.get(chaveFila);
+
+            if (acao === 'entrar') {
+                const jaEstaNestaFila = listaJogadores.some(j => j.id === usuarioId);
+                if (jaEstaNestaFila) {
+                    return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
+                }
+
+                listaJogadores.push({ id: usuarioId, opcao: opcaoEscolhida });
+
+            } else if (acao === 'sair') {
+                const index = listaJogadores.findIndex(j => j.id === usuarioId);
+                if (index !== -1) {
+                    listaJogadores.splice(index, 1);
+                } else {
+                    return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true }).catch(() => {});
+                }
+            }
+
+            let textoJogadores = `👥 **Jogadores na Fila (0/${maxJogadores})**`;
+            if (listaJogadores.length > 0) {
+                textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/${maxJogadores}):**\n` + 
+                    listaJogadores.map(j => `<@${j.id}> | ${j.opcao}`).join('\n');
+            }
+
+            const novoEmbed = new EmbedBuilder()
+                .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n${textoJogadores}`)
+                .setColor('#0099ff');
+
+            await interaction.message.edit({ embeds: [novoEmbed] }).catch(() => {});
+
+            if (listaJogadores.length >= maxJogadores) {
+                const jogadoresPartida = [...listaJogadores];
+                filas.set(chaveFila, []);
+
+                const embedVazio = new EmbedBuilder()
+                    .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                    .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
+                    .setColor('#0099ff');
+
+                await interaction.message.edit({ embeds: [embedVazio] }).catch(() => {});
+
+                try {
+                    const guild = interaction.guild;
+                    const admId = interaction.user.id;
+
+                    const canalPrivado = await guild.channels.create({
+                        name: `sala-${modo}`.toLowerCase().replace(/\s/g, '-'),
+                        type: ChannelType.GuildText,
+                        parent: interaction.channel.parentId,
+                        permissionOverwrites: [
+                            { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...jogadoresPartida.map(p => ({
+                                id: p.id,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+                            })),
+                            { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+                        ]
+                    });
+
+                    confirmadosPartida.set(canalPrivado.id, []);
+                    const numPartida = Math.floor(Math.random() * 900000) + 100000;
+
+                    const embedApostaCriada = new EmbedBuilder()
+                        .setColor('#0099ff')
+                        .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                        .setTitle('SAMURAI E-SPORTS | Canal de Aposta ✅')
+                        .addFields(
+                            { name: 'Partida:', value: `${numPartida}`, inline: false },
+                            { name: 'Modo:', value: `${modo.toUpperCase()}`, inline: false },
+                            { name: 'Valor da Aposta:', value: `${formatarMoeda(valor)}`, inline: false },
+                            { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
+                            { name: 'Jogadores:', value: `${jogadoresPartida.map(p => `<@${p.id}>`).join(', ')}`, inline: false },
+                            { name: 'Mediador:', value: `<@${admId}>`, inline: false }
+                        );
+
+                    const botoesApostaCriada = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`confirmar_${jogadoresPartida[0].id}_${valor}_${admId}`)
+                            .setLabel('Confirmar')
+                            .setStyle(ButtonStyle.Success),
+                        new ButtonBuilder()
+                            .setCustomId('cancelar_aposta')
+                            .setLabel('Cancelar')
+                            .setStyle(ButtonStyle.Danger)
+                    );
+
+                    await canalPrivado.send({
+                        content: `${jogadoresPartida.map(p => `<@${p.id}>`).join(' ')}`,
+                        embeds: [embedApostaCriada],
+                        components: [botoesApostaCriada]
+                    });
+                } catch (e) {
+                    console.log("Erro ao criar canal privado:", e);
+                }
+            }
+            return;
+        }
+    });
+
+    const filasMistas = {
+        '2x2-misto': { formato: '2x2 Misto', valor: 5.00, maxTotal: 2, emus: [] },
+        '3x3-misto': { formato: '3x3 Misto', valor: 5.00, maxTotal: 2, emus: [] },
+        '4x4-misto': { formato: '4x4 Misto', valor: 5.00, maxTotal: 2, emus: [] }
+    };
+
+    function criarBotoesMisto(chaveFila) {
+        const linha = new ActionRowBuilder();
+
+        if (chaveFila === '2x2-misto') {
+            linha.addComponents(
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary)
+            );
+        } else if (chaveFila === '3x3-misto') {
+            linha.addComponents(
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary)
+            );
+        } else if (chaveFila === '4x4-misto') {
+            linha.addComponents(
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`${chaveFila}_emu_3`).setLabel('3º Emu').setStyle(ButtonStyle.Secondary)
+            );
+        }
+
+        linha.addComponents(
+            new ButtonBuilder().setCustomId(`${chaveFila}_sair`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger)
+        );
+
+        return linha;
+    }
+
+    async function atualizarPainelMisto(interaction, chaveFila) {
+        try {
+            const fila = filasMistas[chaveFila];
+            const mensagem = interaction.message;
+            const taxaAdm = 0.15;
+
+            let listaTexto = `Nenhum jogador na fila`;
+            if (fila.emus.length > 0) {
+                listaTexto = fila.emus.map(id => `<@${id}> | ${fila.emus.indexOf(id) + 1} Emu`).join('\n');
+            }
+
+            const embedAtualizada = new EmbedBuilder()
+                .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
+                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
+                .setColor('#0099ff');
+
+            const linhaBotoes = criarBotoesMisto(chaveFila);
+            await mensagem.edit({ embeds: [embedAtualizada], components: [linhaBotoes] });
+        } catch (err) {
+            console.error('Erro ao atualizar painel misto:', err);
+        }
+    }
+
+    async function verificarEFecharFilaMista(interaction, chaveFila) {
+        const fila = filasMistas[chaveFila];
+
+        if (fila.emus.length >= fila.maxTotal) {
+            const guild = interaction.guild;
+            const todosJogadores = [...fila.emus];
+
+            try {
+                const categoriaDestino = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
+
+                const canalPrivado = await guild.channels.create({
+                    name: `⛩️-partida-${chaveFila}-${Math.floor(Math.random() * 900 + 100)}`,
+                    type: ChannelType.GuildText,
+                    parent: categoriaDestino ? categoriaDestino.id : null,
+                    permissionOverwrites: [
+                        {
+                            id: guild.id,
+                            deny: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                        ...todosJogadores.map(id => ({
+                            id: id,
+                            allow: [
+                                PermissionsBitField.Flags.ViewChannel,
+                                PermissionsBitField.Flags.SendMessages,
+                                PermissionsBitField.Flags.ReadMessageHistory
+                            ]
+                        }))
+                    ]
+                });
+
+                const numPartida = Math.floor(Math.random() * 900000) + 100000;
+                const taxaAdm = 0.15;
+                const admId = interaction.user.id;
+
+                const embedApostaCriada = new EmbedBuilder()
+                    .setColor('#0099ff')
+                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+                    .setTitle('SAMURAI E-SPORTS | Canal de Aposta ✅')
+                    .addFields(
+                        { name: 'Partida:', value: `${numPartida}`, inline: false },
+                        { name: 'Modo:', value: `${fila.formato.toUpperCase()}`, inline: false },
+                        { name: 'Valor da Aposta:', value: `${formatarMoeda(fila.valor)}`, inline: false },
+                        { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
+                        { name: 'Jogadores:', value: `${todosJogadores.map(id => `<@${id}>`).join(', ')}`, inline: false },
+                        { name: 'Mediador:', value: `<@${admId}>`, inline: false }
+                    );
+
+                const botoesApostaCriada = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`confirmar_${todosJogadores[0]}_${fila.valor}_${admId}`)
+                        .setLabel('Confirmar')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId('cancelar_aposta')
+                        .setLabel('Cancelar')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+                confirmadosPartida.set(canalPrivado.id, []);
+
+                await canalPrivado.send({
+                    content: `${todosJogadores.map(id => `<@${id}>`).join(' ')}`,
+                    embeds: [embedApostaCriada],
+                    components: [botoesApostaCriada]
+                });
+                
+                fila.emus = [];
+                await interaction.message.delete().catch(() => {});
+
+            } catch (err) {
+                console.error('Erro ao criar canal privado da partida:', err);
+            }
+        }
+    }
+
+    async function atualizarPainelFila(message) {
+        const embedAtualizado = new EmbedBuilder()
+            .setColor('#2b2d31')
+            .setTitle('⚔️ SAMURAI E-SPORTS | Fila de Mediadores')
+            .setDescription(`**O mediador(es) na fila:**\n${filaMediadores.length > 0 ? filaMediadores.map((m, index) => `${index + 1}. <@${m}>`).join('\n') : '⚠️ Atenção – Nenhum mediador na fila\n*Clique em "Entrar" para se adicionar à fila*'}`)
+            .setFooter({ text: 'Sistema de Fila Automatizado • Samurai' })
+            .setTimestamp();
+
+        await message.edit({ embeds: [embedAtualizado] }).catch(() => {});
+    }
+
+    client.login(process.env.DISCORD_TOKEN);
