@@ -700,15 +700,5 @@ async function verificarEFecharFilaMista(interaction, chaveFila) {
         }
     }
 }
-await canalPrivado.send({
-                content: `${todosJogadores.map(id => `<@${id}>`).join(' ')}`,
-                embeds: [embedApostaCriada],
-                components: [botoesApostaCriada]
-            });
-        } catch (e) {
-            console.log("Erro ao criar canal privado misto:", e);
-        }
-    }
-}
 
 client.login(process.env.DISCORD_TOKEN);
