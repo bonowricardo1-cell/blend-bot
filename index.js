@@ -394,7 +394,7 @@ client.on('interactionCreate', async (interaction) => {
         let chaveFilaMista = customId.split('_')[0];
         if (filasMistas[chaveFilaMista]) {
             if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
-
+if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
             const fila = filasMistas[chaveFilaMista];
             const partes = customId.split('_');
             const acao = partes[1]; 
@@ -425,7 +425,7 @@ client.on('interactionCreate', async (interaction) => {
 
         if (customId.includes('|')) {
             if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
-            
+    
             const partes = customId.split('|');
             if (partes.length < 4) return;
 
