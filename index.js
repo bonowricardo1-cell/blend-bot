@@ -246,12 +246,13 @@ client.on('interactionCreate', async (interaction) => {
                 .setRequired(true);
 
             const msgInput = new TextInputBuilder()
-                .setCustomId('input_msg_pix')
-                .setLabel('Mensagem de Pré-Pagamento')
-                .setPlaceholder('Ex: NÃO ACEITO INTER, PICPAY, MERCADO PAGO')
-                .setStyle(TextInputStyle.Paragraph)
-                .setRequired(false);
-
+        .setCustomId('input_msg_pix')
+        .setLabel('Mensagem de Pré-Pagamento')
+        .setPlaceholder('Ex: NÃO ACEITO INTER, PICPAY, MERCADO PAGO')
+        .setValue('NÃO ACEITOS: INTER, PICPAY, MERCADO PAGO. (Taxa de 5¢ para uso destes).')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
+            
             modal.addComponents(
                 new ActionRowBuilder().addComponents(chaveInput),
                 new ActionRowBuilder().addComponents(nomeInput),
