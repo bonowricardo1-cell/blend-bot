@@ -37,7 +37,7 @@ let pixConfig = {};
 // ==========================================
 // PERSISTÊNCIA DO PIX EM JSON
 // ==========================================
-const pixFile = path.join(__dirname, 'pixConfig.json');
+const pixFile = path.join(__dirname, 'config', 'pixConfig.json');
 if (fs.existsSync(pixFile)) {
     try {
         pixConfig = JSON.parse(fs.readFileSync(pixFile, 'utf8'));
