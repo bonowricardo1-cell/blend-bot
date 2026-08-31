@@ -15,9 +15,7 @@ async function handleButtonInteraction(
     const { customId, user, message, guild } = interaction;
     if (!customId) return;
 
-    // =========================================================================
-    // 1. MODAL DE CONFIGURAÇÃO DE PIX
-    // =========================================================================
+    // Se for o modal submit, trata separado
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -32,8 +30,46 @@ async function handleButtonInteraction(
         });
     }
 
+    // Modal trigger não precisa de defer
+    if (customId === 'btn_config_pix') {
+        const modal = new ModalBuilder()
+            .setCustomId('modal_config_pix')
+            .setTitle('Configuração de Chave Pix');
+
+        const inputChave = new TextInputBuilder()
+            .setCustomId('input_chave_pix')
+            .setLabel('Sua Chave Pix (Telefone, Email, CPF...)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true);
+
+        const inputNome = new TextInputBuilder()
+            .setCustomId('input_nome_pix')
+            .setLabel('Nome Completo do Titular')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true);
+
+        const inputMsg = new TextInputBuilder()
+            .setCustomId('input_msg_pix')
+            .setLabel('Mensagem opcional de pré-pagamento')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(false);
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(inputChave),
+            new ActionRowBuilder().addComponents(inputNome),
+            new ActionRowBuilder().addComponents(inputMsg)
+        );
+
+        return interaction.showModal(modal);
+    }
+
+    // Para todos os outros botões, usamos deferUpdate seguro para evitar timeouts e duplicações
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {});
+    }
+
     // =========================================================================
-    // 2. TRATAMENTO PARA FILAS MISTAS
+    // 1. TRATAMENTO PARA FILAS MISTAS
     // =========================================================================
     const { filasMistas, limitesFila } = require('../config/queues');
     let chaveFilaMista = customId.split('_')[0];
@@ -46,7 +82,7 @@ async function handleButtonInteraction(
         if (acao === 'emu') {
             if (!fila.emus) fila.emus = [];
             if (fila.emus.includes(user.id)) {
-                return interaction.reply({ content: '❌ Você já está nesta fila!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
 
             let totalFilasUsuario = 0;
@@ -59,15 +95,15 @@ async function handleButtonInteraction(
                 }
             }
             if (totalFilasUsuario >= 3) {
-                return interaction.reply({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true }).catch(() => {});
             }
 
             if (fila.emus.length >= (fila.maxTotal || 2)) {
-                return interaction.reply({ content: '❌ As vagas já estão esgotadas!', ephemeral: true });
+                return interaction.followUp({ content: '❌ As vagas já estão esgotadas!', ephemeral: true }).catch(() => {});
             }
 
             fila.emus.push(user.id);
-            await interaction.reply({ content: `✅ Vaga garantida!`, ephemeral: true });
+            await interaction.followUp({ content: `✅ Vaga garantida!`, ephemeral: true }).catch(() => {});
             await atualizarPainelMisto(interaction, chaveFilaMista);
 
             if (fila.emus.length >= (fila.maxTotal || 2)) {
@@ -87,17 +123,17 @@ async function handleButtonInteraction(
 
         } else if (acao === 'sair') {
             if (!fila.emus || !fila.emus.includes(user.id)) {
-                return interaction.reply({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
+                return interaction.followUp({ content: '⚠️ Você não está nesta fila.', ephemeral: true }).catch(() => {});
             }
             fila.emus = fila.emus.filter(id => id !== user.id);
-            await interaction.reply({ content: '🚪 Você saiu da fila.', ephemeral: true });
+            await interaction.followUp({ content: '🚪 Você saiu da fila.', ephemeral: true }).catch(() => {});
             await atualizarPainelMisto(interaction, chaveFilaMista);
         }
         return;
     }
 
     // =========================================================================
-    // 3. TRATAMENTO PARA FILAS NORMAIS (separadas por |)
+    // 2. TRATAMENTO PARA FILAS NORMAIS (separadas por |)
     // =========================================================================
     if (customId.includes('|')) {
         const partes = customId.split('|');
@@ -115,7 +151,7 @@ async function handleButtonInteraction(
 
         if (acao === 'entrar') {
             if (listaJogadores.some(j => j.id === user.id)) {
-                return interaction.reply({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
+                return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
 
             let totalFilasUsuario = 0;
@@ -126,18 +162,18 @@ async function handleButtonInteraction(
                 if (lista.some(j => j.id === user.id)) totalFilasUsuario++;
             }
             if (totalFilasUsuario >= 3) {
-                return interaction.reply({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true });
+                return interaction.followUp({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true }).catch(() => {});
             }
 
             listaJogadores.push({ id: user.id, opcao: opcaoEscolhida });
-            await interaction.reply({ content: '✅ Vaga garantida!', ephemeral: true }).catch(() => {});
+            await interaction.followUp({ content: '✅ Vaga garantida!', ephemeral: true }).catch(() => {});
         } else if (acao === 'sair') {
             const index = listaJogadores.findIndex(j => j.id === user.id);
             if (index !== -1) {
                 listaJogadores.splice(index, 1);
-                await interaction.reply({ content: '🚪 Você saiu da fila.', ephemeral: true }).catch(() => {});
+                await interaction.followUp({ content: '🚪 Você saiu da fila.', ephemeral: true }).catch(() => {});
             } else {
-                return interaction.reply({ content: '❌ Você não está nesta fila!', ephemeral: true }).catch(() => {});
+                return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true }).catch(() => {});
             }
         }
 
@@ -172,7 +208,7 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // 4. TRATAMENTO PARA FILA DE MEDIADORES
+    // 3. TRATAMENTO PARA FILA DE MEDIADORES
     // =========================================================================
     if (['btn_entrar_fila', 'btn_sair_fila', 'btn_atualizar_fila', 'btn_reset_fila'].includes(customId)) {
         if (!filaMediadores) return;
@@ -180,23 +216,23 @@ async function handleButtonInteraction(
         if (customId === 'btn_entrar_fila') {
             if (!filaMediadores.includes(user.id)) {
                 filaMediadores.push(user.id);
-                await interaction.reply({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true }).catch(() => {});
+                await interaction.followUp({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true }).catch(() => {});
             } else {
-                await interaction.reply({ content: '⚠️ Você já está na fila de mediadores.', ephemeral: true }).catch(() => {});
+                await interaction.followUp({ content: '⚠️ Você já está na fila de mediadores.', ephemeral: true }).catch(() => {});
             }
         } else if (customId === 'btn_sair_fila') {
             const idx = filaMediadores.indexOf(user.id);
             if (idx !== -1) {
                 filaMediadores.splice(idx, 1);
-                await interaction.reply({ content: '🚪 Você saiu da fila de mediadores.', ephemeral: true }).catch(() => {});
+                await interaction.followUp({ content: '🚪 Você saiu da fila de mediadores.', ephemeral: true }).catch(() => {});
             } else {
-                await interaction.reply({ content: '⚠️ Você não está na fila de mediadores.', ephemeral: true }).catch(() => {});
+                await interaction.followUp({ content: '⚠️ Você não está na fila de mediadores.', ephemeral: true }).catch(() => {});
             }
         } else if (customId === 'btn_atualizar_fila') {
-            await interaction.reply({ content: '🔄 Fila atualizada!', ephemeral: true }).catch(() => {});
+            await interaction.followUp({ content: '🔄 Fila atualizada!', ephemeral: true }).catch(() => {});
         } else if (customId === 'btn_reset_fila') {
             filaMediadores.length = 0;
-            await interaction.reply({ content: '🧹 Fila de mediadores resetada!', ephemeral: true }).catch(() => {});
+            await interaction.followUp({ content: '🧹 Fila de mediadores resetada!', ephemeral: true }).catch(() => {});
         }
 
         if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
@@ -206,61 +242,29 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // 5. PAINEL DE PIX
+    // 4. PAINEL DE PIX
     // =========================================================================
-    if (customId === 'btn_config_pix') {
-        const modal = new ModalBuilder()
-            .setCustomId('modal_config_pix')
-            .setTitle('Configuração de Chave Pix');
-
-        const inputChave = new TextInputBuilder()
-            .setCustomId('input_chave_pix')
-            .setLabel('Sua Chave Pix (Telefone, Email, CPF...)')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        const inputNome = new TextInputBuilder()
-            .setCustomId('input_nome_pix')
-            .setLabel('Nome Completo do Titular')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        const inputMsg = new TextInputBuilder()
-            .setCustomId('input_msg_pix')
-            .setLabel('Mensagem opcional de pré-pagamento')
-            .setStyle(TextInputStyle.Paragraph)
-            .setRequired(false);
-
-        modal.addComponents(
-            new ActionRowBuilder().addComponents(inputChave),
-            new ActionRowBuilder().addComponents(inputNome),
-            new ActionRowBuilder().addComponents(inputMsg)
-        );
-
-        return interaction.showModal(modal);
-    }
-
     if (customId === 'btn_ver_qrcode') {
         const config = pixConfig[user.id];
         if (!config || !config.chave) {
-            return interaction.reply({ content: '❌ Você ainda não configurou sua chave Pix! Clique em "Configurar Pix".', ephemeral: true });
+            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix! Clique em "Configurar Pix".', ephemeral: true }).catch(() => {});
         }
-        return interaction.reply({ content: `📷 **Sua Chave Pix Cadastrada:** \`${config.chave}\` (${config.nome})`, ephemeral: true });
+        return interaction.followUp({ content: `📷 **Sua Chave Pix Cadastrada:** \`${config.chave}\` (${config.nome})`, ephemeral: true }).catch(() => {});
     }
 
     if (customId === 'btn_testar_pix') {
         const config = pixConfig[user.id];
         if (!config || !config.chave) {
-            return interaction.reply({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true });
+            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true }).catch(() => {});
         }
-        return interaction.reply({ content: `🧪 **Pix funcionando perfeitamente!** Chave configurada: \`${config.chave}\``, ephemeral: true });
+        return interaction.followUp({ content: `🧪 **Pix funcionando perfeitamente!** Chave configurada: \`${config.chave}\``, ephemeral: true }).catch(() => {});
     }
 
     // =========================================================================
-    // 6. BOTÃO DE FECHAR TICKET
+    // 5. BOTÃO DE FECHAR TICKET
     // =========================================================================
     if (customId === 'fechar_ticket') {
-        await interaction.reply({ content: '🔒 Fechando este canal de atendimento em instantes...', ephemeral: true }).catch(() => {});
+        await interaction.followUp({ content: '🔒 Fechando este canal de atendimento em instantes...', ephemeral: true }).catch(() => {});
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
         }, 3000);
