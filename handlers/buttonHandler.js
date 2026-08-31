@@ -12,23 +12,28 @@ async function handleButtonInteraction(
     formatarMoeda, 
     salvarPix
 ) {
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {});
+    }
+
     const { customId, user, message } = interaction;
+    if (!customId) return;
 
-    // Ações de filas mistas
-    let chaveFilaMista = customId.split('_')[0];
     const { filasMistas, limitesFila } = require('../config/queues');
+    let chaveFilaMista = customId.split('_')[0];
 
-    if (filasMistas[chaveFilaMista]) {
-        if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
+    // Tratamento para Filas Mistas
+    if (filasMistas && filasMistas[chaveFilaMista]) {
         const fila = filasMistas[chaveFilaMista];
         const partes = customId.split('_');
         const acao = partes[1]; 
 
         if (acao === 'emu') {
+            if (!fila.emus) fila.emus = [];
             if (fila.emus.includes(user.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
             }
-            if (fila.emus.length >= fila.maxTotal) {
+            if (fila.emus.length >= (fila.maxTotal || 2)) {
                 return interaction.followUp({ content: '❌ As vagas já estão esgotadas!', ephemeral: true });
             }
 
@@ -36,9 +41,9 @@ async function handleButtonInteraction(
             await interaction.followUp({ content: `✅ Vaga garantida!`, ephemeral: true });
             await atualizarPainelMisto(interaction, chaveFilaMista);
 
-            if (fila.emus.length >= fila.maxTotal) {
+            if (fila.emus.length >= (fila.maxTotal || 2)) {
                 const jogadoresPartida = [...fila.emus];
-                fila.emus = []; // Reseta a fila mista
+                fila.emus = []; 
 
                 const taxaAdm = 0.15;
                 const embedVazio = new EmbedBuilder()
@@ -47,15 +52,12 @@ async function handleButtonInteraction(
                     .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
 
-                const linhaBotoes = require('../index').criarBotoesMisto ? null : null; // Mantém a estrutura
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
-
-                // CHAMA O RODÍZIO DE ADM PARA A FILA MISTA
                 await puxarProximoMediador(interaction.guild, jogadoresPartida, fila.formato, fila.valor, interaction.channel);
             }
 
         } else if (acao === 'sair') {
-            if (!fila.emus.includes(user.id)) {
+            if (!fila.emus || !fila.emus.includes(user.id)) {
                 return interaction.followUp({ content: '⚠️ Você não está nesta fila.', ephemeral: true });
             }
             fila.emus = fila.emus.filter(id => id !== user.id);
@@ -65,10 +67,8 @@ async function handleButtonInteraction(
         return;
     }
 
-    // Filas Normais (separadas por |)
+    // Tratamento para Filas Normais (separadas por |)
     if (customId.includes('|')) {
-        if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
-    
         const partes = customId.split('|');
         if (partes.length < 4) return;
 
@@ -78,7 +78,6 @@ async function handleButtonInteraction(
         const chaveFila = `${message.id}`;
         const maxJogadores = limitesFila[modo.toLowerCase()] || 2;
 
-        // Gerenciamento local de filas normais na memória
         if (!global.filasGlobais) global.filasGlobais = new Map();
         if (!global.filasGlobais.has(chaveFila)) global.filasGlobais.set(chaveFila, []);
         let listaJogadores = global.filasGlobais.get(chaveFila);
@@ -92,6 +91,7 @@ async function handleButtonInteraction(
             const index = listaJogadores.findIndex(j => j.id === user.id);
             if (index !== -1) {
                 listaJogadores.splice(index, 1);
+                await interaction.followUp({ content: '🚪 Você saiu da fila.', ephemeral: true }).catch(() => {});
             } else {
                 return interaction.followUp({ content: '❌ Você não está nesta fila!', ephemeral: true }).catch(() => {});
             }
@@ -122,8 +122,6 @@ async function handleButtonInteraction(
                 .setColor('#0099ff');
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
-
-            // CHAMA O RODÍZIO DE ADM AUTOMÁTICO
             await puxarProximoMediador(interaction.guild, jogadoresPartida, modo, valor, interaction.channel);
         }
         return;
