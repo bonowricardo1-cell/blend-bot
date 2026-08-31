@@ -192,8 +192,8 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         const taxaAdm = 0.15;
 
         let listaTexto = `Nenhum jogador na fila`;
-        if (fila.emus.length > 0) {
-            listaTexto = fila.emus.map(id => `<@${id}> | ${fila.emus.indexOf(id) + 1} Emu`).join('\n');
+        if (fila.emus && fila.emus.length > 0) {
+            listaTexto = fila.emus.map((id, index) => `<@${id}> | ${index + 1}º Emu`).join('\n');
         }
 
         const embedAtualizada = new EmbedBuilder()
@@ -360,10 +360,10 @@ client.on('messageCreate', async (message) => {
 });
 
 // ==========================================
-// INTERAÇÕES (DELEGAÇÃO PARA O HANDLER)
+// INTERAÇÕES (TICKETS E BOTÕES)
 // ==========================================
 client.on('interactionCreate', async (interaction) => {
-    // Tratamento de modais locais
+    // 1. Tratamento de modais locais
     if (interaction.isModalSubmit() && interaction.customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -379,7 +379,60 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // Delega os botões e interações complexas para o arquivo separado
+    // 2. Tratamento do Menu de Tickets (Criar Canal Privado)
+    if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply({ ephemeral: true }).catch(() => {});
+        }
+
+        const guild = interaction.guild;
+        const user = interaction.user;
+        const opcaoEscolhida = interaction.values[0];
+
+        try {
+            // Tenta achar uma categoria ou usa o canal atual
+            const categoriaDestino = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
+
+            // Cria o canal privado visível apenas para o usuário, cargos de suporte/admin e o bot
+            const canalPrivado = await guild.channels.create({
+                name: `ticket-${user.username}`.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                type: ChannelType.GuildText,
+                parent: categoriaDestino ? categoriaDestino.id : interaction.channel.parentId,
+                permissionOverwrites: [
+                    {
+                        id: guild.id, // Bloqueia para todo mundo (@everyone)
+                        deny: [PermissionFlagsBits.ViewChannel],
+                    },
+                    {
+                        id: user.id, // Permite para quem abriu o ticket
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: client.user.id, // Permite para o bot
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
+                    },
+                ],
+            });
+
+            const embedTicketAberto = new EmbedBuilder()
+                .setTitle(`🎫 Atendimento | ${opcaoEscolhida.toUpperCase()}`)
+                .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.`)
+                .setColor('#0099ff');
+
+            await canalPrivado.send({
+                content: `<@${user.id}>`,
+                embeds: [embedTicketAberto]
+            });
+
+            await interaction.editReply({ content: `✅ Seu ticket foi criado com sucesso em ${canalPrivado}!` });
+        } catch (error) {
+            console.error("Erro ao criar ticket:", error);
+            await interaction.editReply({ content: `❌ Ocorreu um erro ao criar o canal do ticket.` });
+        }
+        return;
+    }
+
+    // 3. Delega os botões e interações complexas para o arquivo separado
     await handleButtonInteraction(
         interaction, 
         client, 
