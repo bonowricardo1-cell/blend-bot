@@ -78,13 +78,13 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
     filaMediadores.push(admId);
 
     try {
-        const categoriaDestino = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
+        const categoriaDestino = canalOrigem.parent || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
         const numPartida = Math.floor(Math.random() * 900000 + 100000);
 
         const canalPrivado = await guild.channels.create({
             name: `sala-${tipoModo}`.toLowerCase().replace(/\s/g, '-'),
             type: ChannelType.GuildText,
-            parent: categoriaDestino ? categoriaDestino.id : canalOrigem.parentId,
+            parent: categoriaDestino ? categoriaDestino.id : null,
             permissionOverwrites: [
                 { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
                 ...jogadoresPartida.map(pId => ({
@@ -390,25 +390,23 @@ client.on('interactionCreate', async (interaction) => {
         const opcaoEscolhida = interaction.values[0];
 
         try {
-            // Tenta achar uma categoria ou usa o canal atual
-            const categoriaDestino = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
+            const categoriaDestino = interaction.channel.parent || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
 
-            // Cria o canal privado visível apenas para o usuário, cargos de suporte/admin e o bot
             const canalPrivado = await guild.channels.create({
                 name: `ticket-${user.username}`.toLowerCase().replace(/[^a-z0-9]/g, '-'),
                 type: ChannelType.GuildText,
-                parent: categoriaDestino ? categoriaDestino.id : interaction.channel.parentId,
+                parent: categoriaDestino ? categoriaDestino.id : null,
                 permissionOverwrites: [
                     {
-                        id: guild.id, // Bloqueia para todo mundo (@everyone)
+                        id: guild.id,
                         deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
-                        id: user.id, // Permite para quem abriu o ticket
+                        id: user.id,
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
                     },
                     {
-                        id: client.user.id, // Permite para o bot
+                        id: client.user.id,
                         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
                     },
                 ],
@@ -416,12 +414,17 @@ client.on('interactionCreate', async (interaction) => {
 
             const embedTicketAberto = new EmbedBuilder()
                 .setTitle(`🎫 Atendimento | ${opcaoEscolhida.toUpperCase()}`)
-                .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.`)
+                .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.`)
                 .setColor('#0099ff');
+
+            const botaoFecharTicket = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('fechar_ticket').setLabel('Fechar Ticket').setStyle(ButtonStyle.Danger).setEmoji('🔒')
+            );
 
             await canalPrivado.send({
                 content: `<@${user.id}>`,
-                embeds: [embedTicketAberto]
+                embeds: [embedTicketAberto],
+                components: [botaoFecharTicket]
             });
 
             await interaction.editReply({ content: `✅ Seu ticket foi criado com sucesso em ${canalPrivado}!` });
