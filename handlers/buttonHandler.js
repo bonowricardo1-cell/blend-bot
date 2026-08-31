@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 async function handleButtonInteraction(
     interaction, 
@@ -16,13 +16,15 @@ async function handleButtonInteraction(
         await interaction.deferUpdate().catch(() => {});
     }
 
-    const { customId, user, message } = interaction;
+    const { customId, user, message, guild } = interaction;
     if (!customId) return;
 
+    // =========================================================================
+    // 1. TRATAMENTO PARA FILAS MISTAS
+    // =========================================================================
     const { filasMistas, limitesFila } = require('../config/queues');
     let chaveFilaMista = customId.split('_')[0];
 
-    // Tratamento para Filas Mistas
     if (filasMistas && filasMistas[chaveFilaMista]) {
         const fila = filasMistas[chaveFilaMista];
         const partes = customId.split('_');
@@ -33,6 +35,21 @@ async function handleButtonInteraction(
             if (fila.emus.includes(user.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true });
             }
+
+            // Validação de até 3 filas simultâneas do usuário
+            let totalFilasUsuario = 0;
+            for (const fKey in filasMistas) {
+                if (filasMistas[fKey].emus && filasMistas[fKey].emus.includes(user.id)) totalFilasUsuario++;
+            }
+            if (global.filasGlobais) {
+                for (const [fKey, lista] of global.filasGlobais.entries()) {
+                    if (lista.some(j => j.id === user.id)) totalFilasUsuario++;
+                }
+            }
+            if (totalFilasUsuario >= 3) {
+                return interaction.followUp({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true });
+            }
+
             if (fila.emus.length >= (fila.maxTotal || 2)) {
                 return interaction.followUp({ content: '❌ As vagas já estão esgotadas!', ephemeral: true });
             }
@@ -67,7 +84,9 @@ async function handleButtonInteraction(
         return;
     }
 
-    // Tratamento para Filas Normais (separadas por |)
+    // =========================================================================
+    // 2. TRATAMENTO PARA FILAS NORMAIS (separadas por |)
+    // =========================================================================
     if (customId.includes('|')) {
         const partes = customId.split('|');
         if (partes.length < 4) return;
@@ -86,7 +105,21 @@ async function handleButtonInteraction(
             if (listaJogadores.some(j => j.id === user.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
+
+            // Validação de até 3 filas simultâneas
+            let totalFilasUsuario = 0;
+            for (const fKey in filasMistas) {
+                if (filasMistas[fKey].emus && filasMistas[fKey].emus.includes(user.id)) totalFilasUsuario++;
+            }
+            for (const [fKey, lista] of global.filasGlobais.entries()) {
+                if (lista.some(j => j.id === user.id)) totalFilasUsuario++;
+            }
+            if (totalFilasUsuario >= 3) {
+                return interaction.followUp({ content: '❌ Você já atingiu o limite máximo de 3 filas simultâneas!', ephemeral: true });
+            }
+
             listaJogadores.push({ id: user.id, opcao: opcaoEscolhida });
+            await interaction.followUp({ content: '✅ Vaga garantida!', ephemeral: true }).catch(() => {});
         } else if (acao === 'sair') {
             const index = listaJogadores.findIndex(j => j.id === user.id);
             if (index !== -1) {
@@ -124,6 +157,51 @@ async function handleButtonInteraction(
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
             await puxarProximoMediador(interaction.guild, jogadoresPartida, modo, valor, interaction.channel);
         }
+        return;
+    }
+
+    // =========================================================================
+    // 3. TRATAMENTO PARA FILA DE MEDIADORES / ADMINS
+    // =========================================================================
+    if (customId === 'entrar_mediador' || customId === 'sair_mediador' || customId === 'atualizar_mediador' || customId === 'reset_mediador') {
+        if (!filaMediadores) return;
+
+        if (customId === 'entrar_mediador') {
+            if (!filaMediadores.includes(user.id)) {
+                filaMediadores.push(user.id);
+                await interaction.followUp({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true }).catch(() => {});
+            } else {
+                await interaction.followUp({ content: '⚠️ Você já está na fila de mediadores.', ephemeral: true }).catch(() => {});
+            }
+        } else if (customId === 'sair_mediador') {
+            const idx = filaMediadores.indexOf(user.id);
+            if (idx !== -1) {
+                filaMediadores.splice(idx, 1);
+                await interaction.followUp({ content: '🚪 Você saiu da fila de mediadores.', ephemeral: true }).catch(() => {});
+            } else {
+                await interaction.followUp({ content: '⚠️ Você não está na fila de mediadores.', ephemeral: true }).catch(() => {});
+            }
+        } else if (customId === 'atualizar_mediador') {
+            await interaction.followUp({ content: '🔄 Fila atualizada!', ephemeral: true }).catch(() => {});
+        } else if (customId === 'reset_mediador') {
+            filaMediadores.length = 0;
+            await interaction.followUp({ content: '🧹 Fila de mediadores resetada!', ephemeral: true }).catch(() => {});
+        }
+
+        if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
+            await atualizarPainelMediadoresPorMensagem(message);
+        }
+        return;
+    }
+
+    // =========================================================================
+    // 4. BOTÃO DE FECHAR TICKET
+    // =========================================================================
+    if (customId === 'fechar_ticket') {
+        await interaction.followUp({ content: '🔒 Fechando este canal de atendimento em instantes...', ephemeral: true }).catch(() => {});
+        setTimeout(async () => {
+            await interaction.channel.delete().catch(() => {});
+        }, 3000);
         return;
     }
 }
