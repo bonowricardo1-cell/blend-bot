@@ -64,7 +64,7 @@ client.once('ready', () => {
 });
 
 // ==========================================
-// FUNÇÃO DE RODÍZIO DE ADM AUTOMÁTICO
+// FUNÇÃO DE RODÍZIO DE ADM AUTOMÁTICO (PADRÃO NULLA - CONFIRMAÇÃO COM BOLINHAS)
 // ==========================================
 async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorAposta, canalOrigem) {
     if (filaMediadores.length === 0) {
@@ -98,36 +98,35 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
             ]
         });
 
-        confirmadosPartida.set(canalPrivado.id, []);
-        const medConfig = pixConfig[admId] || { chave: 'Não configurada', nome: 'Não configurado' };
         const taxaAdm = 0.15;
-        const listaFormatadaJogadores = jogadoresPartida.map(p => typeof p === 'object' ? `<@${p.id}>` : `<@${p}>`).join(', ');
-        const primeiroJogadorId = typeof jogadoresPartida[0] === 'object' ? jogadoresPartida[0].id : jogadoresPartida[0];
+        
+        // Mapeia os jogadores com bolinhas vermelhas inicialmente 🔴 (Padrão Nulla)
+        const statusJogadores = jogadoresPartida.map(p => {
+            const id = typeof p === 'object' ? p.id : p;
+            return `🔴 <@${id}>`;
+        }).join('\n');
 
-        const embedApostaCriada = new EmbedBuilder()
-            .setColor('#0099ff')
+        const embedConfirmacao = new EmbedBuilder()
+            .setColor('#2b2d31')
             .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setTitle('SAMURAI E-SPORTS | Canal de Aposta ✅')
+            .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
-                { name: 'Partida:', value: `${numPartida}`, inline: false },
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)}`, inline: false },
-                { name: 'Taxa ADM:', value: `${formatarMoeda(taxaAdm)}`, inline: false },
-                { name: 'Jogadores:', value: `${listaFormatadaJogadores}`, inline: false },
-                { name: 'Mediador (Vez):', value: `<@${admId}>`, inline: false },
-                { name: 'Chave Pix:', value: `\`${medConfig.chave}\``, inline: false },
-                { name: 'Nome completo:', value: `\`${medConfig.nome}\``, inline: false }
-            );
+                { name: 'Valor da Aposta:', value: `${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: 'Mediador Designado:', value: `<@${admId}>`, inline: false },
+                { name: '👤 Jogadores', value: statusJogadores, inline: false }
+            )
+            .setFooter({ text: 'Ambos os jogadores devem confirmar para liberar o Pix e iniciar a partida.' });
 
-        const botoesApostaCriada = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`confirmar_${primeiroJogadorId}_${valorAposta}_${admId}`).setLabel('Confirmar').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('cancelar_aposta').setLabel('Cancelar').setStyle(ButtonStyle.Danger)
+        const botoesConfirmacao = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`btn_confirmar_${numPartida}`).setLabel('Confirmar').setStyle(ButtonStyle.Success).setEmoji('✅'),
+            new ButtonBuilder().setCustomId(`btn_cancelar_${numPartida}`).setLabel('Cancelar').setStyle(ButtonStyle.Danger).setEmoji('✖️')
         );
 
         await canalPrivado.send({
             content: `${jogadoresPartida.map(p => typeof p === 'object' ? `<@${p.id}>` : `<@${p}>`).join(' ')} <@${admId}>`,
-            embeds: [embedApostaCriada],
-            components: [botoesApostaCriada]
+            embeds: [embedConfirmacao],
+            components: [botoesConfirmacao]
         });
 
     } catch (e) {
