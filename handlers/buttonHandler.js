@@ -227,35 +227,29 @@ async function handleButtonInteraction(
     // 3. TRATAMENTO PARA FILA DE MEDIADORES
     // =========================================================================
     if (['btn_entrar_fila', 'btn_sair_fila', 'btn_atualizar_fila', 'btn_reset_fila'].includes(customId)) {
-        if (!filaMediadores) return;
+    if (!filaMediadores) return;
 
-        if (customId === 'btn_entrar_fila') {
-            if (!filaMediadores.includes(user.id)) {
-                filaMediadores.push(user.id);
-                await interaction.followUp({ content: '✅ Você entrou na fila de mediadores!', ephemeral: true }).catch(() => {});
-            } else {
-                await interaction.followUp({ content: '⚠️ Você já está na fila de mediadores.', ephemeral: true }).catch(() => {});
-            }
-        } else if (customId === 'btn_sair_fila') {
-            const idx = filaMediadores.indexOf(user.id);
-            if (idx !== -1) {
-                filaMediadores.splice(idx, 1);
-                await interaction.followUp({ content: '🚪 Você saiu da fila de mediadores.', ephemeral: true }).catch(() => {});
-            } else {
-                await interaction.followUp({ content: '⚠️ Você não está na fila de mediadores.', ephemeral: true }).catch(() => {});
-            }
-        } else if (customId === 'btn_atualizar_fila') {
-            await interaction.followUp({ content: '🔄 Fila atualizada!', ephemeral: true }).catch(() => {});
-        } else if (customId === 'btn_reset_fila') {
-            filaMediadores.length = 0;
-            await interaction.followUp({ content: '🧹 Fila de mediadores resetada!', ephemeral: true }).catch(() => {});
+    if (customId === 'btn_entrar_fila') {
+        if (!filaMediadores.includes(user.id)) {
+            filaMediadores.push(user.id);
         }
-
-        if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
-            await atualizarPainelMediadoresPorMensagem(message);
+    } else if (customId === 'btn_sair_fila') {
+        const idx = filaMediadores.indexOf(user.id);
+        if (idx !== -1) {
+            filaMediadores.splice(idx, 1);
         }
-        return;
+    } else if (customId === 'btn_reset_fila') {
+        filaMediadores.length = 0;
     }
+
+    if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
+        await atualizarPainelMediadoresPorMensagem(interaction.message);
+    }
+    
+    await interaction.deferUpdate().catch(() => {});
+    return;
+}
+    
 
     // =========================================================================
     // 4. PAINEL DE PIX
