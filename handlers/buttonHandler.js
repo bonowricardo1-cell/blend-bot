@@ -80,6 +80,14 @@ async function handleButtonInteraction(
         const acao = partes[1]; 
 
         if (acao === 'emu') {
+            // TRAVA PROFISSIONAL: Impede entrar se não houver mediadores na fila
+            if (!filaMediadores || filaMediadores.length === 0) {
+                return interaction.followUp({ 
+                    content: '❌ **Atenção:** Não há nenhum mediador na fila no momento! Aguarde um ADM entrar para poder apostar.', 
+                    ephemeral: true 
+                }).catch(() => {});
+            }
+
             if (!fila.emus) fila.emus = [];
             if (fila.emus.includes(user.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
@@ -150,6 +158,14 @@ async function handleButtonInteraction(
         let listaJogadores = global.filasGlobais.get(chaveFila);
 
         if (acao === 'entrar') {
+            // TRAVA PROFISSIONAL: Impede entrar se não houver mediadores na fila
+            if (!filaMediadores || filaMediadores.length === 0) {
+                return interaction.followUp({ 
+                    content: '❌ **Atenção:** Não há nenhum mediador na fila no momento! Aguarde um ADM entrar para poder apostar.', 
+                    ephemeral: true 
+                }).catch(() => {});
+            }
+
             if (listaJogadores.some(j => j.id === user.id)) {
                 return interaction.followUp({ content: '❌ Você já está nesta fila!', ephemeral: true }).catch(() => {});
             }
