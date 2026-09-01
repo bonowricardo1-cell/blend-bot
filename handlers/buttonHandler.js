@@ -69,6 +69,107 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
+    // 0. TRATAMENTO PARA CONFIRMAÇÃO DE PARTIDA (PADRÃO NULLA - BOLINHAS)
+    // =========================================================================
+    if (customId.startsWith('btn_confirmar_')) {
+        const embed = message.embeds[0];
+        if (!embed) return;
+
+        const fieldJogadores = embed.fields.find(f => f.name.includes('Jogadores'));
+        if (!fieldJogadores) return;
+
+        let linhas = fieldJogadores.value.split('\n');
+        let atualizou = false;
+
+        linhas = linhas.map(linha => {
+            if (linha.includes(user.id)) {
+                if (linha.includes('🔴')) {
+                    atualizou = true;
+                    return linha.replace('🔴', '🟢');
+                }
+            }
+            return linha;
+        });
+
+        if (!atualizou) return;
+
+        const novoEmbed = EmbedBuilder.from(embed).setFields(
+            { name: '👤 Jogadores', value: linhas.join('\n'), inline: false }
+        );
+
+        const todosConfirmaram = !linhas.some(l => l.includes('🔴'));
+
+        if (todosConfirmaram) {
+            // Apaga o painel de confirmação limpo e libera o painel oficial com Pix e Mediador
+            await message.delete().catch(() => {});
+
+            // Envia o painel oficial da partida confirmada
+            const embedOficial = new EmbedBuilder()
+                .setTitle(`SAMURAI E-SPORTS | Canal de Aposta ✅`)
+                .setColor('#1f2023')
+                .setDescription(embed.description)
+                .addFields({ name: '👤 Jogadores', value: linhas.join('\n'), inline: false });
+
+            const rowBotoesSala = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('btn_painel_mediador')
+                    .setLabel('Painel do mediador')
+                    .setStyle(ButtonStyle.Primary)
+                    .setEmoji('🔧'),
+                new ButtonBuilder()
+                    .setCustomId('btn_liberar_pagamento')
+                    .setLabel('Liberar pagamento')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('btn_fornecer_sala')
+                    .setLabel('Fornecer sala')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            await interaction.channel.send({ embeds: [embedOficial], components: [rowBotoesSala] });
+
+            // Envia o painel do Pix logo abaixo
+            const embedPix = new EmbedBuilder()
+                .setColor('#2b2d31')
+                .setTitle('💰 Pagamento Liberado')
+                .setDescription('Escaneie o QR Code ou copie a chave Pix enviada logo abaixo.');
+
+            await interaction.channel.send({ embeds: [embedPix] });
+        } else {
+            await message.edit({ embeds: [novoEmbed], components: message.components }).catch(() => {});
+        }
+        return;
+    }
+
+    if (customId.startsWith('btn_cancelar_partida') || customId.includes('_cancelar')) {
+        await interaction.channel.send('⚠️ Partida cancelada. Fechando canal...').catch(() => {});
+        setTimeout(async () => {
+            await interaction.channel.delete().catch(() => {});
+        }, 1500);
+        return;
+    }
+
+    // Botão "Painel do Mediador" (Envia os botões de controle na conversa)
+    if (customId === 'btn_painel_mediador') {
+        const rowMediador = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_cancelar_fila')
+                .setLabel('Cancelar fila')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('btn_finalizar_fila')
+                .setLabel('Finalizar fila')
+                .setStyle(ButtonStyle.Success)
+        );
+
+        await interaction.channel.send({
+            content: `⚙️ **Painel do Mediador**\n> Selecione uma ação abaixo.`,
+            components: [rowMediador]
+        }).catch(() => {});
+        return;
+    }
+
+    // =========================================================================
     // 1. TRATAMENTO PARA FILAS MISTAS
     // =========================================================================
     const { filasMistas, limitesFila } = require('../config/queues');
@@ -80,7 +181,6 @@ async function handleButtonInteraction(
         const acao = partes[1]; 
 
         if (acao === 'emu') {
-            // TRAVA PROFISSIONAL: Impede entrar se não houver mediadores na fila
             if (!filaMediadores || filaMediadores.length === 0) {
                 return interaction.followUp({ 
                     content: '❌ **Atenção:** Não há nenhum mediador na fila no momento! Aguarde um ADM entrar para poder apostar.', 
@@ -126,7 +226,30 @@ async function handleButtonInteraction(
                     .setColor('#0099ff');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
-                await puxarProximoMediador(guild, jogadoresPartida, fila.formato, fila.valor, interaction.channel);
+
+                // Em vez de chamar o Pix direto, dispara o painel de confirmação com bolinhas vermelhas 🔴
+                const statusJogadores = jogadoresPartida.map(id => `🔴 <@${id}>`).join('\n');
+                const embedConfirmacao = new EmbedBuilder()
+                    .setColor('#2b2d31')
+                    .setTitle(`Confirmação de Partida 🎮`)
+                    .setDescription(`🎮 Modo: ${fila.formato}\n💰 Aposta: ${formatarMoeda(fila.valor)}`)
+                    .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
+                    .setFooter({ text: 'Ambos os jogadores devem confirmar para iniciar a partida.' });
+
+                const rowConfirm = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`btn_confirmar_misto`)
+                        .setLabel('Confirmar')
+                        .setStyle(ButtonStyle.Success)
+                        .setEmoji('✅'),
+                    new ButtonBuilder()
+                        .setCustomId(`btn_cancelar_misto`)
+                        .setLabel('Cancelar')
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('✖️')
+                );
+
+                await interaction.channel.send({ embeds: [embedConfirmacao], components: [rowConfirm] });
             }
 
         } else if (acao === 'sair') {
@@ -158,7 +281,6 @@ async function handleButtonInteraction(
         let listaJogadores = global.filasGlobais.get(chaveFila);
 
         if (acao === 'entrar') {
-            // TRAVA PROFISSIONAL: Impede entrar se não houver mediadores na fila
             if (!filaMediadores || filaMediadores.length === 0) {
                 return interaction.followUp({ 
                     content: '❌ **Atenção:** Não há nenhum mediador na fila no momento! Aguarde um ADM entrar para poder apostar.', 
@@ -218,7 +340,31 @@ async function handleButtonInteraction(
                 .setColor('#0099ff');
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
-            await puxarProximoMediador(guild, jogadoresPartida, modo, valor, interaction.channel);
+
+            // Dispara o painel de confirmação com bolinhas vermelhas 🔴 para as filas normais
+            const statusJogadores = jogadoresPartida.map(j => `🔴 <@${j.id}>`).join('\n');
+            const embedConfirmacao = new EmbedBuilder()
+                .setColor('#2b2d31')
+                .setTitle(`Confirmação de Partida 🎮`)
+                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta: ${formatarMoeda(valor)}`)
+                .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
+                .setFooter({ text: 'Ambos os jogadores devem confirmar para iniciar a partida.' });
+
+            const rowConfirm = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`btn_confirmar_normal`)
+                    .setLabel('Confirmar')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('✅'),
+                new ButtonBuilder()
+                    .setCustomId(`btn_cancelar_normal`)
+                    .setLabel('Cancelar')
+                    .setStyle(ButtonStyle.Danger)
+                    .setEmoji('✖️')
+            );
+
+            // Cria um canal específico para a partida ou envia no canal atual conforme sua preferência
+            await interaction.channel.send({ embeds: [embedConfirmacao], components: [rowConfirm] });
         }
         return;
     }
@@ -227,29 +373,26 @@ async function handleButtonInteraction(
     // 3. TRATAMENTO PARA FILA DE MEDIADORES
     // =========================================================================
     if (['btn_entrar_fila', 'btn_sair_fila', 'btn_atualizar_fila', 'btn_reset_fila'].includes(customId)) {
-    if (!filaMediadores) return;
+        if (!filaMediadores) return;
 
-    if (customId === 'btn_entrar_fila') {
-        if (!filaMediadores.includes(user.id)) {
-            filaMediadores.push(user.id);
+        if (customId === 'btn_entrar_fila') {
+            if (!filaMediadores.includes(user.id)) {
+                filaMediadores.push(user.id);
+            }
+        } else if (customId === 'btn_sair_fila') {
+            const idx = filaMediadores.indexOf(user.id);
+            if (idx !== -1) {
+                filaMediadores.splice(idx, 1);
+            }
+        } else if (customId === 'btn_reset_fila') {
+            filaMediadores.length = 0;
         }
-    } else if (customId === 'btn_sair_fila') {
-        const idx = filaMediadores.indexOf(user.id);
-        if (idx !== -1) {
-            filaMediadores.splice(idx, 1);
-        }
-    } else if (customId === 'btn_reset_fila') {
-        filaMediadores.length = 0;
-    }
 
-    if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
-        await atualizarPainelMediadoresPorMensagem(interaction.message);
+        if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
+            await atualizarPainelMediadoresPorMensagem(interaction.message);
+        }
+        return;
     }
-    
-    await interaction.deferUpdate().catch(() => {});
-    return;
-}
-    
 
     // =========================================================================
     // 4. PAINEL DE PIX
