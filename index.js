@@ -50,7 +50,9 @@ if (fs.existsSync(pixFile)) {
 
 async function salvarPix() {
     fs.writeFileSync(pixFile, JSON.stringify(pixConfig, null, 2));
-    await salvarPixNoGitHub(pixConfig);
+    if (typeof salvarPixNoGitHub === 'function') {
+        await salvarPixNoGitHub(pixConfig);
+    }
 }
 
 function formatarMoeda(valor) {
