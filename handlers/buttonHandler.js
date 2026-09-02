@@ -15,6 +15,9 @@ async function handleButtonInteraction(
     const { customId, user, message, guild } = interaction;
     if (!customId) return;
 
+    const orgIcon = guild ? guild.iconURL({ dynamic: true }) : null;
+    const taxaAdmFixa = 0.15;
+
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -66,9 +69,9 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE VERMELHO
+    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE COM LOGO
     // =========================================================================
-    async function enviarPainelProfissionalPartida(canal, modoTexto, statusJogadoresTexto, valorAposta) {
+    async function enviarPainelProfissionalPartida(canal, modoTexto, statusJogadoresTexto, valorApostaBase) {
         try {
             const mensagens = await canal.messages.fetch({ limit: 20 });
             await canal.bulkDelete(mensagens, true).catch(() => {});
@@ -77,19 +80,19 @@ async function handleButtonInteraction(
         }
 
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
+        const valorTotalPartida = Number((parseFloat(valorApostaBase) + taxaAdmFixa).toFixed(2));
 
-        // 1. Embed Principal Profissional (Estilo Fila #1)
+        // 1. Embed Principal Profissional
         const embedOficial = new EmbedBuilder()
             .setTitle(`Fila #1`)
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail(orgIcon)
             .setColor('#1f2023')
             .addFields(
                 { name: 'Formato:', value: 'Freefire', inline: true },
                 { name: 'Tipo:', value: 'Misto', inline: true },
                 { name: 'Modo:', value: modoTexto, inline: true },
                 { name: 'Seleção:', value: '1 Emu', inline: true },
-                { name: 'Valor:', value: formatarMoeda(valorAposta), inline: true },
-                { name: '\u200b', value: '\u200b', inline: true },
+                { name: 'Valor:', value: `${formatarMoeda(valorApostaBase)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`, inline: false },
                 { name: '👥 Jogadores', value: statusJogadoresTexto, inline: false },
                 { name: '🛡️ Mediador', value: `<@${mediadorId}>`, inline: false }
             );
@@ -112,20 +115,22 @@ async function handleButtonInteraction(
 
         await canal.send({ embeds: [embedOficial], components: [rowBotoesSala] });
 
-        // 2. Embed de Pagamento com QR Code Vermelho Funcional (Sem propagandas)
+        // 2. Embed de Pagamento com QR Code Vermelho + Logo Central da Org
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
         
-        // URL da API gerando QR Code em vermelho vibrante com alta correção de erro (H)
+        // Monta a URL do QR Code com alta correção de erro (H) para suportar logo no centro
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(configPix.chave)}&color=ff0000&bgcolor=ffffff&ecc=H`;
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado')
+            .setThumbnail(orgIcon)
             .addFields(
+                { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
-                { name: 'Valor:', value: formatarMoeda(valorAposta), inline: false }
+                { name: 'Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
             )
-            .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.`)
+            .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.\n*Chave Pix do Mediador carregada com sucesso!*`)
             .setImage(qrCodeUrl);
 
         await canal.send({ embeds: [embedPix] });
@@ -159,11 +164,13 @@ async function handleButtonInteraction(
                 permissionOverwrites: permissionOverwrites
             });
 
+            const valorTotalPartida = Number((parseFloat(valorAposta) + taxaAdmFixa).toFixed(2));
             const statusJogadores = jogadoresIds.map(id => `🔴 <@${id}>`).join('\n');
             const embedConfirmacao = new EmbedBuilder()
                 .setColor('#2b2d31')
                 .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
-                .setDescription(`🎮 Modo: ${modoTexto}\n💰 Aposta: ${formatarMoeda(valorAposta)}`)
+                .setThumbnail(orgIcon)
+                .setDescription(`🎮 Modo: ${modoTexto}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
 
@@ -239,14 +246,29 @@ async function handleButtonInteraction(
     if (customId === 'btn_liberar_pagamento') {
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
+        
+        // Pega o valor atual do embed da partida anterior para calcular exato com a taxa
+        let valorApostaBase = 0.20; // padrão caso não ache
+        if (message && message.embeds && message.embeds[0]) {
+            const embedAtual = message.embeds[0];
+            const campoValor = embedAtual.fields.find(f => f.name.toLowerCase().includes('valor'));
+            if (campoValor) {
+                const match = campoValor.value.match(/R\$\s*([\d,.]+)/);
+                if (match) valorApostaBase = parseFloat(match[1].replace('.', '').replace(',', '.'));
+            }
+        }
+
+        const valorTotalPartida = Number((valorApostaBase + taxaAdmFixa).toFixed(2));
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(configPix.chave)}&color=ff0000&bgcolor=ffffff&ecc=H`;
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado (Reenviado)')
+            .setThumbnail(orgIcon)
             .addFields(
+                { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
-                { name: 'Valor:', value: 'R$ 0,65', inline: false }
+                { name: 'Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
             )
             .setDescription('Escaneie o QR Code abaixo com o aplicativo do seu banco.')
             .setImage(qrCodeUrl);
@@ -328,15 +350,14 @@ async function handleButtonInteraction(
                 const jogadoresPartida = [...fila.emus];
                 fila.emus = []; 
 
-                const taxaAdm = 0.15;
+                const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
                     .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-                    .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
+                    .setThumbnail(orgIcon)
+                    .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
-
                 await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor);
             }
 
@@ -357,7 +378,7 @@ async function handleButtonInteraction(
 
         const [acao, modo, valorStr, opcaoEscolhida] = partes;
         const valor = parseFloat(valorStr);
-        const taxaAdm = 0.15;
+        const valorTotalExibido = Number((valor + taxaAdmFixa).toFixed(2));
         const chaveFila = `${message.id}`;
         const maxJogadores = limitesFila[modo.toLowerCase()] || 2;
 
@@ -408,8 +429,8 @@ async function handleButtonInteraction(
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-            .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n${textoJogadores}`)
+            .setThumbnail(orgIcon)
+            .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
         await message.edit({ embeds: [novoEmbed] }).catch(() => {});
@@ -420,8 +441,8 @@ async function handleButtonInteraction(
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-                .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
-                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
+                .setThumbnail(orgIcon)
+                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
                 .setColor('#0099ff');
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
