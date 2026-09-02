@@ -235,7 +235,7 @@ async function handleButtonInteraction(
 
             const jogadoresMencionados = linhas.map(l => {
                 const match = l.match(/<@!?(\d+)>/);
-                return match ? `<@${match[1]>` : null;
+               return match ? `<@${match[1]}>` : null;
             }).filter(Boolean).join(' vs ');
 
             await enviarPainelProfissionalPartida(interaction.channel, '2x2', jogadoresMencionados || 'Jogadores', valorAposta);
