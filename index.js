@@ -182,7 +182,7 @@ function criarBotoesMisto(chaveFila) {
         );
     }
 
-    linha.addComponents(new ButtonBuilder().setCustomId(`${chaveFila}_sair`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger));
+    linha.addComponents(new ButtonBuilder().setCustomId(`${chaveFila}_sair`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger).setEmoji('✖️'));
     return linha;
 }
 
@@ -283,14 +283,14 @@ client.on('messageCreate', async (message) => {
             botoes.addComponents(
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger)
+                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
             );
         } else {
-            // Padronização aplicada para 2x2, 3x3, 4x4 (Mobile e Emulador) com os botões Normal, Full Ump Xm8 e Sair
+            // Fila 2x2, 3x3, 4x4 (Mobile e Emulador) padronizadas com o Samurai no thumbnail e botão Sair com o X
             botoes.addComponents(
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger)
+                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
             );
         }
 
