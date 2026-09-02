@@ -132,7 +132,7 @@ async function handleButtonInteraction(
         await canal.send({ embeds: [embedPix] });
     }
 
-    async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta, tipoPartida, selecaoTexto) {
+    async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta, tipoPartida, selecaoTexto, opcaoEscolhida = 'normal') {
         try {
             const permissionOverwrites = [
                 { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -146,7 +146,10 @@ async function handleButtonInteraction(
                 });
             }
 
-            const nomeCanal = `partida-${Math.floor(Math.random() * 9000) + 1000}`;
+            const numeroAleatorio = Math.floor(Math.random() * 90000) + 10000;
+            const opcaoFormatada = opcaoEscolhida.toLowerCase().replace(/\s+/g, '-');
+            const nomeCanal = `fila-${numeroAleatorio}-${opcaoFormatada}`;
+
             const canalPrivado = await guild.channels.create({
                 name: nomeCanal,
                 type: ChannelType.GuildText,
@@ -160,7 +163,7 @@ async function handleButtonInteraction(
                 .setColor('#2b2d31')
                 .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
                 .setThumbnail(orgIcon)
-                .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida})\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
+                .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
 
@@ -362,7 +365,7 @@ async function handleButtonInteraction(
                     .setColor('#0099ff');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
-                await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor, 'Misto', 'Misto');
+                await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor, 'Misto', 'Misto', 'misto');
             }
 
         } else if (acao === 'sair') {
@@ -453,7 +456,6 @@ async function handleButtonInteraction(
 
             const idsJogadores = jogadoresPartida.map(j => j.id);
             
-            // Detecta se o canal é Mobile ou Emu pelo nome do canal
             const nomeCanal = interaction.channel.name.toLowerCase();
             let tipoPartida = 'Mobile';
             let selecaoTexto = 'Mobile';
@@ -466,7 +468,7 @@ async function handleButtonInteraction(
                 selecaoTexto = 'Misto';
             }
 
-            await criarCanalPrivadoEEnviarConfirmacao(idsJogadores, modo, valor, tipoPartida, selecaoTexto);
+            await criarCanalPrivadoEEnviarConfirmacao(idsJogadores, modo, valor, tipoPartida, selecaoTexto, opcaoEscolhida);
         }
         return;
     }
