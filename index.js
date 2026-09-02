@@ -291,7 +291,7 @@ client.on('messageCreate', async (message) => {
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger)
         );
-    }
+    
         }
 
         await message.channel.send({ embeds: [embed], components: [botoes] });
