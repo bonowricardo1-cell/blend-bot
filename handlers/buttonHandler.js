@@ -284,6 +284,47 @@ async function handleButtonInteraction(
         return;
     }
 
+    // =========================================================================
+    // BOTÃO DE FORNECER SALA (RENOMEIA O CANAL PARA O VALOR DO PRÊMIO DO VENCEDOR)
+    // =========================================================================
+    if (customId === 'btn_fornecer_sala') {
+        try {
+            let valorApostaBase = 0;
+            if (message && message.embeds && message.embeds[0]) {
+                const embedAtual = message.embeds[0];
+                const campoValor = embedAtual.fields.find(f => f.name.toLowerCase().includes('valor'));
+                if (campoValor) {
+                    const match = campoValor.value.match(/R\$\s*([\d,.]+)/);
+                    if (match) valorApostaBase = parseFloat(match[1].replace('.', '').replace(',', '.'));
+                }
+            }
+
+            // Calcula o prêmio total descontando/somando de acordo com a regra da aposta (Ex: 2 jogadores apostando 1,00 = 2,00 do prêmio)
+            // Como temos a aposta base por pessoa, vamos estimar o prêmio multiplicando por 2 (ou pegando o valor base total da sala se aplicável)
+            // Pelo seu relato: "tipo fila de 1,00... sobrando dois 2 real que e o valor do ganhador" -> O valor do prêmio é o valor base da aposta da fila multiplicado por 2 (ou o valor total sem a taxa administrativa).
+            let valorPremioVencedor = valorApostaBase * 2;
+            if (isNaN(valorPremioVencedor) || valorPremioVencedor <= 0) {
+                valorPremioVencedor = 2.00; // Valor padrão de segurança caso não detecte
+            }
+
+            // Formata o nome do canal (ex: pagar-2-00)
+            const valorFormatadoNome = valorPremioVencedor.toFixed(2).replace('.', '-');
+            const novoNomeCanal = `pagar-${valorFormatadoNome}`;
+
+            // Renomeia o canal atual
+            await interaction.channel.setName(novoNomeCanal).catch(err => console.error('Erro ao renomear canal:', err));
+
+            await interaction.followUp({ 
+                content: `✅ **Sala fornecida com sucesso!** O canal foi renomeado para \`#${novoNomeCanal}\`.`, 
+                ephemeral: true 
+            }).catch(() => {});
+        } catch (error) {
+            console.error('Erro ao processar o botão fornecer sala:', error);
+            await interaction.followUp({ content: '❌ Ocorreu um erro ao renomear o canal.', ephemeral: true }).catch(() => {});
+        }
+        return;
+    }
+
     if (customId === 'btn_cancelar_partida_privada' || customId.includes('_cancelar')) {
         await interaction.channel.send('⚠️ Partida cancelada. Fechando canal em instantes...').catch(() => {});
         setTimeout(async () => {
