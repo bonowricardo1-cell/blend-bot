@@ -67,6 +67,60 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
+    // FUNÇÃO PARA ENVIAR O PAINEL OFICIAL E O QR CODE AUTOMATICAMENTE (LIMPAR CANAL)
+    // =========================================================================
+    async function enviarPainelCompletoPartida(canal, descricaoEmbed, statusJogadoresTexto, valorAposta) {
+        // Tenta apagar todas as mensagens anteriores do canal privado de confirmação
+        try {
+            const mensagens = await canal.messages.fetch({ limit: 20 });
+            await canal.bulkDelete(mensagens, true).catch(() => {});
+        } catch (e) {
+            console.error('Erro ao limpar mensagens do canal:', e);
+        }
+
+        // 1. Embed Principal do Canal de Aposta
+        const embedOficial = new EmbedBuilder()
+            .setTitle(`SAMURAI E-SPORTS | Canal de Aposta ✅`)
+            .setColor('#1f2023')
+            .setDescription(descricaoEmbed)
+            .addFields({ name: '👤 Jogadores', value: statusJogadoresTexto, inline: false });
+
+        const rowBotoesSala = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_painel_mediador')
+                .setLabel('Painel do mediador')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('🔧'),
+            new ButtonBuilder()
+                .setCustomId('btn_liberar_pagamento')
+                .setLabel('Liberar pagamento')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('btn_fornecer_sala')
+                .setLabel('Fornecer sala')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        await canal.send({ embeds: [embedOficial], components: [rowBotoesSala] });
+
+        // 2. Embed de Pagamento / QR Code automático
+        const embedPix = new EmbedBuilder()
+            .setColor('#2b2d31')
+            .setTitle('💰 Pagamento Liberado')
+            .setDescription(`Escaneie o QR Code ou copie a chave Pix para realizar o pagamento de **${formatarMoeda(valorAposta)}**.`);
+
+        const rowPix = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_ver_qrcode')
+                .setLabel('Ver QR Code / Chave')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('📷')
+        );
+
+        await canal.send({ embeds: [embedPix], components: [rowPix] });
+    }
+
+    // =========================================================================
     // FUNÇÃO AUXILIAR PARA CRIAR O CANAL PRIVADO DE CONFIRMAÇÃO
     // =========================================================================
     async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta) {
@@ -78,7 +132,7 @@ async function handleButtonInteraction(
                 },
                 {
                     id: client.user.id,
-                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages],
                 }
             ];
 
@@ -162,41 +216,34 @@ async function handleButtonInteraction(
         const todosConfirmaram = !linhas.some(l => l.includes('🔴'));
 
         if (todosConfirmaram) {
-            await message.delete().catch(() => {});
+            const descOriginal = embed.description || '';
+            let valorApostaMatch = descOriginal.match(/R\$\s*([\d,.]+)/);
+            let valorAposta = valorApostaMatch ? parseFloat(valorApostaMatch[1].replace('.', '').replace(',', '.')) : 0;
 
-            const embedOficial = new EmbedBuilder()
-                .setTitle(`SAMURAI E-SPORTS | Canal de Aposta ✅`)
-                .setColor('#1f2023')
-                .setDescription(embed.description)
-                .addFields({ name: '👤 Jogadores', value: linhas.join('\n'), inline: false });
-
-            const rowBotoesSala = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('btn_painel_mediador')
-                    .setLabel('Painel do mediador')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('🔧'),
-                new ButtonBuilder()
-                    .setCustomId('btn_liberar_pagamento')
-                    .setLabel('Liberar pagamento')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId('btn_fornecer_sala')
-                    .setLabel('Fornecer sala')
-                    .setStyle(ButtonStyle.Secondary)
-            );
-
-            await interaction.channel.send({ embeds: [embedOficial], components: [rowBotoesSala] });
-
-            const embedPix = new EmbedBuilder()
-                .setColor('#2b2d31')
-                .setTitle('💰 Pagamento Liberado')
-                .setDescription('Escaneie o QR Code ou copie a chave Pix enviada logo abaixo.');
-
-            await interaction.channel.send({ embeds: [embedPix] });
+            // Apaga tudo e envia o painel completo + QR Code automaticamente
+            await enviarPainelCompletoPartida(interaction.channel, descOriginal, linhas.join('\n'), valorAposta);
         } else {
             await message.edit({ embeds: [novoEmbed], components: message.components }).catch(() => {});
         }
+        return;
+    }
+
+    // Botão de Forçar / Reenviar Pagamento (caso dê falha)
+    if (customId === 'btn_liberar_pagamento') {
+        const embedPix = new EmbedBuilder()
+            .setColor('#2b2d31')
+            .setTitle('💰 Pagamento Liberado (Reenviado)')
+            .setDescription('Escaneie o QR Code ou copie a chave Pix enviada abaixo.');
+
+        const rowPix = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('btn_ver_qrcode')
+                .setLabel('Ver QR Code / Chave')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('📷')
+        );
+
+        await interaction.channel.send({ embeds: [embedPix], components: [rowPix] }).catch(() => {});
         return;
     }
 
