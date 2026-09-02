@@ -66,7 +66,7 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE
+    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE VERMELHO
     // =========================================================================
     async function enviarPainelProfissionalPartida(canal, modoTexto, statusJogadoresTexto, valorAposta) {
         try {
@@ -76,7 +76,6 @@ async function handleButtonInteraction(
             console.error('Erro ao limpar mensagens do canal:', e);
         }
 
-        // Pega o primeiro mediador da fila se houver, ou usa o bot/usuário atual
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
 
         // 1. Embed Principal Profissional (Estilo Fila #1)
@@ -113,11 +112,11 @@ async function handleButtonInteraction(
 
         await canal.send({ embeds: [embedOficial], components: [rowBotoesSala] });
 
-        // 2. Embed de Pagamento / QR Code Profissional
+        // 2. Embed de Pagamento com QR Code Vermelho Funcional (Sem propagandas)
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
         
-        // Link dinâmico do QR Code baseado na chave pix cadastrada
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(configPix.chave)}`;
+        // URL da API gerando QR Code em vermelho vibrante com alta correção de erro (H)
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(configPix.chave)}&color=ff0000&bgcolor=ffffff&ecc=H`;
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
@@ -126,18 +125,10 @@ async function handleButtonInteraction(
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
                 { name: 'Valor:', value: formatarMoeda(valorAposta), inline: false }
             )
-            .setDescription(`Escaneie o QR Code ou copie a chave Pix enviada abaixo.`)
+            .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.`)
             .setImage(qrCodeUrl);
 
-        const rowPix = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('btn_ver_qrcode')
-                .setLabel('Ver QR Code / Chave')
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji('📷')
-        );
-
-        await canal.send({ embeds: [embedPix], components: [rowPix] });
+        await canal.send({ embeds: [embedPix] });
     }
 
     async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta) {
@@ -235,7 +226,7 @@ async function handleButtonInteraction(
 
             const jogadoresMencionados = linhas.map(l => {
                 const match = l.match(/<@!?(\d+)>/);
-               return match ? `<@${match[1]}>` : null;
+                return match ? `<@${match[1]}>` : null;
             }).filter(Boolean).join(' vs ');
 
             await enviarPainelProfissionalPartida(interaction.channel, '2x2', jogadoresMencionados || 'Jogadores', valorAposta);
@@ -248,7 +239,7 @@ async function handleButtonInteraction(
     if (customId === 'btn_liberar_pagamento') {
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(configPix.chave)}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(configPix.chave)}&color=ff0000&bgcolor=ffffff&ecc=H`;
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
@@ -257,18 +248,10 @@ async function handleButtonInteraction(
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
                 { name: 'Valor:', value: 'R$ 0,65', inline: false }
             )
-            .setDescription('Escaneie o QR Code ou copie a chave Pix enviada abaixo.')
+            .setDescription('Escaneie o QR Code abaixo com o aplicativo do seu banco.')
             .setImage(qrCodeUrl);
 
-        const rowPix = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('btn_ver_qrcode')
-                .setLabel('Ver QR Code / Chave')
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji('📷')
-        );
-
-        await interaction.channel.send({ embeds: [embedPix], components: [rowPix] }).catch(() => {});
+        await interaction.channel.send({ embeds: [embedPix] }).catch(() => {});
         return;
     }
 
@@ -469,14 +452,6 @@ async function handleButtonInteraction(
             await atualizarPainelMediadoresPorMensagem(interaction.message);
         }
         return;
-    }
-
-    if (customId === 'btn_ver_qrcode') {
-        const config = pixConfig[user.id] || Object.values(pixConfig)[0];
-        if (!config || !config.chave) {
-            return interaction.followUp({ content: '❌ Nenhuma chave Pix configurada!', ephemeral: true }).catch(() => {});
-        }
-        return interaction.followUp({ content: `📷 **Chave Pix:** \`${config.chave}\` (${config.nome})`, ephemeral: true }).catch(() => {});
     }
 
     if (customId === 'btn_testar_pix') {
