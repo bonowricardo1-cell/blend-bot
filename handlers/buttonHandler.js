@@ -15,7 +15,6 @@ async function handleButtonInteraction(
     const { customId, user, message, guild } = interaction;
     if (!customId) return;
 
-    // Se for o modal submit, trata separado
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -67,10 +66,9 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // FUNÇÃO PARA ENVIAR O PAINEL OFICIAL E O QR CODE AUTOMATICAMENTE (LIMPAR CANAL)
+    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE
     // =========================================================================
-    async function enviarPainelCompletoPartida(canal, descricaoEmbed, statusJogadoresTexto, valorAposta) {
-        // Tenta apagar todas as mensagens anteriores do canal privado de confirmação
+    async function enviarPainelProfissionalPartida(canal, modoTexto, statusJogadoresTexto, valorAposta) {
         try {
             const mensagens = await canal.messages.fetch({ limit: 20 });
             await canal.bulkDelete(mensagens, true).catch(() => {});
@@ -78,12 +76,24 @@ async function handleButtonInteraction(
             console.error('Erro ao limpar mensagens do canal:', e);
         }
 
-        // 1. Embed Principal do Canal de Aposta
+        // Pega o primeiro mediador da fila se houver, ou usa o bot/usuário atual
+        const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
+
+        // 1. Embed Principal Profissional (Estilo Fila #1)
         const embedOficial = new EmbedBuilder()
-            .setTitle(`SAMURAI E-SPORTS | Canal de Aposta ✅`)
+            .setTitle(`Fila #1`)
+            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
             .setColor('#1f2023')
-            .setDescription(descricaoEmbed)
-            .addFields({ name: '👤 Jogadores', value: statusJogadoresTexto, inline: false });
+            .addFields(
+                { name: 'Formato:', value: 'Freefire', inline: true },
+                { name: 'Tipo:', value: 'Misto', inline: true },
+                { name: 'Modo:', value: modoTexto, inline: true },
+                { name: 'Seleção:', value: '1 Emu', inline: true },
+                { name: 'Valor:', value: formatarMoeda(valorAposta), inline: true },
+                { name: '\u200b', value: '\u200b', inline: true },
+                { name: '👥 Jogadores', value: statusJogadoresTexto, inline: false },
+                { name: '🛡️ Mediador', value: `<@${mediadorId}>`, inline: false }
+            );
 
         const rowBotoesSala = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -103,11 +113,21 @@ async function handleButtonInteraction(
 
         await canal.send({ embeds: [embedOficial], components: [rowBotoesSala] });
 
-        // 2. Embed de Pagamento / QR Code automático
+        // 2. Embed de Pagamento / QR Code Profissional
+        const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
+        
+        // Link dinâmico do QR Code baseado na chave pix cadastrada
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(configPix.chave)}`;
+
         const embedPix = new EmbedBuilder()
-            .setColor('#2b2d31')
+            .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado')
-            .setDescription(`Escaneie o QR Code ou copie a chave Pix para realizar o pagamento de **${formatarMoeda(valorAposta)}**.`);
+            .addFields(
+                { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
+                { name: 'Valor:', value: formatarMoeda(valorAposta), inline: false }
+            )
+            .setDescription(`Escaneie o QR Code ou copie a chave Pix enviada abaixo.`)
+            .setImage(qrCodeUrl);
 
         const rowPix = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -120,14 +140,11 @@ async function handleButtonInteraction(
         await canal.send({ embeds: [embedPix], components: [rowPix] });
     }
 
-    // =========================================================================
-    // FUNÇÃO AUXILIAR PARA CRIAR O CANAL PRIVADO DE CONFIRMAÇÃO
-    // =========================================================================
     async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta) {
         try {
             const permissionOverwrites = [
                 {
-                    id: guild.id, // @everyone
+                    id: guild.id,
                     deny: [PermissionFlagsBits.ViewChannel],
                 },
                 {
@@ -183,9 +200,6 @@ async function handleButtonInteraction(
         }
     }
 
-    // =========================================================================
-    // 0. TRATAMENTO PARA CONFIRMAÇÃO DE PARTIDA (BOLINHAS NO CANAL PRIVADO)
-    // =========================================================================
     if (customId.startsWith('btn_confirmar_')) {
         const embed = message.embeds[0];
         if (!embed) return;
@@ -197,7 +211,6 @@ async function handleButtonInteraction(
         let atualizou = false;
 
         linhas = linhas.map(linha => {
-            // Verifica se a linha pertence ao usuário e ainda está vermelha
             if (linha.includes(user.id) && linha.includes('🔴')) {
                 atualizou = true;
                 return linha.replace('🔴', '🟢');
@@ -220,20 +233,32 @@ async function handleButtonInteraction(
             let valorApostaMatch = descOriginal.match(/R\$\s*([\d,.]+)/);
             let valorAposta = valorApostaMatch ? parseFloat(valorApostaMatch[1].replace('.', '').replace(',', '.')) : 0;
 
-            // Apaga tudo e envia o painel completo + QR Code automaticamente
-            await enviarPainelCompletoPartida(interaction.channel, descOriginal, linhas.join('\n'), valorAposta);
+            const jogadoresMencionados = linhas.map(l => {
+                const match = l.match(/<@!?(\d+)>/);
+                return match ? `<@${match[1]>` : null;
+            }).filter(Boolean).join(' vs ');
+
+            await enviarPainelProfissionalPartida(interaction.channel, '2x2', jogadoresMencionados || 'Jogadores', valorAposta);
         } else {
             await message.edit({ embeds: [novoEmbed], components: message.components }).catch(() => {});
         }
         return;
     }
 
-    // Botão de Forçar / Reenviar Pagamento (caso dê falha)
     if (customId === 'btn_liberar_pagamento') {
+        const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
+        const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(configPix.chave)}`;
+
         const embedPix = new EmbedBuilder()
-            .setColor('#2b2d31')
+            .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado (Reenviado)')
-            .setDescription('Escaneie o QR Code ou copie a chave Pix enviada abaixo.');
+            .addFields(
+                { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
+                { name: 'Valor:', value: 'R$ 0,65', inline: false }
+            )
+            .setDescription('Escaneie o QR Code ou copie a chave Pix enviada abaixo.')
+            .setImage(qrCodeUrl);
 
         const rowPix = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -274,9 +299,6 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // 1. TRATAMENTO PARA FILAS MISTAS
-    // =========================================================================
     const { filasMistas, limitesFila } = require('../config/queues');
     let chaveFilaMista = customId.split('_')[0];
 
@@ -346,9 +368,6 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // 2. TRATAMENTO PARA FILAS NORMAIS
-    // =========================================================================
     if (customId.includes('|')) {
         const partes = customId.split('|');
         if (partes.length < 4) return;
@@ -430,9 +449,6 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // 3. TRATAMENTO PARA FILA DE MEDIADORES
-    // =========================================================================
     if (['btn_entrar_fila', 'btn_sair_fila', 'btn_atualizar_fila', 'btn_reset_fila'].includes(customId)) {
         if (!filaMediadores) return;
 
@@ -455,28 +471,22 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // 4. PAINEL DE PIX
-    // =========================================================================
     if (customId === 'btn_ver_qrcode') {
-        const config = pixConfig[user.id];
+        const config = pixConfig[user.id] || Object.values(pixConfig)[0];
         if (!config || !config.chave) {
-            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true }).catch(() => {});
+            return interaction.followUp({ content: '❌ Nenhuma chave Pix configurada!', ephemeral: true }).catch(() => {});
         }
-        return interaction.followUp({ content: `📷 **Sua Chave Pix Cadastrada:** \`${config.chave}\` (${config.nome})`, ephemeral: true }).catch(() => {});
+        return interaction.followUp({ content: `📷 **Chave Pix:** \`${config.chave}\` (${config.nome})`, ephemeral: true }).catch(() => {});
     }
 
     if (customId === 'btn_testar_pix') {
-        const config = pixConfig[user.id];
+        const config = pixConfig[user.id] || Object.values(pixConfig)[0];
         if (!config || !config.chave) {
-            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true }).catch(() => {});
+            return interaction.followUp({ content: '❌ Nenhuma chave Pix configurada!', ephemeral: true }).catch(() => {});
         }
-        return interaction.followUp({ content: `🧪 **Pix funcionando perfeitamente!** Chave: \`${config.chave}\``, ephemeral: true }).catch(() => {});
+        return interaction.followUp({ content: `🧪 **Pix OK!** Chave: \`${config.chave}\``, ephemeral: true }).catch(() => {});
     }
 
-    // =========================================================================
-    // 5. BOTÃO DE FECHAR TICKET
-    // =========================================================================
     if (customId === 'fechar_ticket') {
         await interaction.followUp({ content: '🔒 Fechando canal em instantes...', ephemeral: true }).catch(() => {});
         setTimeout(async () => {
