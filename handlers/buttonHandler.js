@@ -30,7 +30,6 @@ async function handleButtonInteraction(
         });
     }
 
-    // Modal trigger não precisa de defer
     if (customId === 'btn_config_pix') {
         const modal = new ModalBuilder()
             .setCustomId('modal_config_pix')
@@ -63,13 +62,75 @@ async function handleButtonInteraction(
         return interaction.showModal(modal);
     }
 
-    // Para todos os outros botões, usamos deferUpdate seguro para evitar timeouts e duplicações
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate().catch(() => {});
     }
 
     // =========================================================================
-    // 0. TRATAMENTO PARA CONFIRMAÇÃO DE PARTIDA (PADRÃO NULLA - BOLINHAS)
+    // FUNÇÃO AUXILIAR PARA CRIAR O CANAL PRIVADO DE CONFIRMAÇÃO
+    // =========================================================================
+    async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta) {
+        try {
+            const permissionOverwrites = [
+                {
+                    id: guild.id, // @everyone
+                    deny: [PermissionFlagsBits.ViewChannel],
+                },
+                {
+                    id: client.user.id,
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
+                }
+            ];
+
+            for (const id of jogadoresIds) {
+                permissionOverwrites.push({
+                    id: id,
+                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                });
+            }
+
+            const nomeCanal = `partida-${Math.floor(Math.random() * 9000) + 1000}`;
+            const canalPrivado = await guild.channels.create({
+                name: nomeCanal,
+                type: ChannelType.GuildText,
+                parent: interaction.channel.parentId,
+                permissionOverwrites: permissionOverwrites
+            });
+
+            const statusJogadores = jogadoresIds.map(id => `🔴 <@${id}>`).join('\n');
+            const embedConfirmacao = new EmbedBuilder()
+                .setColor('#2b2d31')
+                .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
+                .setDescription(`🎮 Modo: ${modoTexto}\n💰 Aposta: ${formatarMoeda(valorAposta)}`)
+                .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
+                .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
+
+            const rowConfirm = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`btn_confirmar_${modoTexto.toLowerCase().replace(/\s+/g, '')}`)
+                    .setLabel('Confirmar')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('✅'),
+                new ButtonBuilder()
+                    .setCustomId(`btn_cancelar_partida_privada`)
+                    .setLabel('Cancelar')
+                    .setStyle(ButtonStyle.Danger)
+                    .setEmoji('✖️')
+            );
+
+            await canalPrivado.send({
+                content: jogadoresIds.map(id => `<@${id}>`).join(' '),
+                embeds: [embedConfirmacao],
+                components: [rowConfirm]
+            });
+
+        } catch (error) {
+            console.error('Erro ao criar canal privado de confirmação:', error);
+        }
+    }
+
+    // =========================================================================
+    // 0. TRATAMENTO PARA CONFIRMAÇÃO DE PARTIDA (BOLINHAS NO CANAL PRIVADO)
     // =========================================================================
     if (customId.startsWith('btn_confirmar_')) {
         const embed = message.embeds[0];
@@ -82,16 +143,17 @@ async function handleButtonInteraction(
         let atualizou = false;
 
         linhas = linhas.map(linha => {
-            if (linha.includes(user.id)) {
-                if (linha.includes('🔴')) {
-                    atualizou = true;
-                    return linha.replace('🔴', '🟢');
-                }
+            // Verifica se a linha pertence ao usuário e ainda está vermelha
+            if (linha.includes(user.id) && linha.includes('🔴')) {
+                atualizou = true;
+                return linha.replace('🔴', '🟢');
             }
             return linha;
         });
 
-        if (!atualizou) return;
+        if (!atualizou) {
+            return interaction.followUp({ content: '⚠️ Você já confirmou ou não faz parte desta partida.', ephemeral: true }).catch(() => {});
+        }
 
         const novoEmbed = EmbedBuilder.from(embed).setFields(
             { name: '👤 Jogadores', value: linhas.join('\n'), inline: false }
@@ -100,10 +162,8 @@ async function handleButtonInteraction(
         const todosConfirmaram = !linhas.some(l => l.includes('🔴'));
 
         if (todosConfirmaram) {
-            // Apaga o painel de confirmação limpo e libera o painel oficial com Pix e Mediador
             await message.delete().catch(() => {});
 
-            // Envia o painel oficial da partida confirmada
             const embedOficial = new EmbedBuilder()
                 .setTitle(`SAMURAI E-SPORTS | Canal de Aposta ✅`)
                 .setColor('#1f2023')
@@ -128,7 +188,6 @@ async function handleButtonInteraction(
 
             await interaction.channel.send({ embeds: [embedOficial], components: [rowBotoesSala] });
 
-            // Envia o painel do Pix logo abaixo
             const embedPix = new EmbedBuilder()
                 .setColor('#2b2d31')
                 .setTitle('💰 Pagamento Liberado')
@@ -141,15 +200,14 @@ async function handleButtonInteraction(
         return;
     }
 
-    if (customId.startsWith('btn_cancelar_partida') || customId.includes('_cancelar')) {
-        await interaction.channel.send('⚠️ Partida cancelada. Fechando canal...').catch(() => {});
+    if (customId === 'btn_cancelar_partida_privada' || customId.includes('_cancelar')) {
+        await interaction.channel.send('⚠️ Partida cancelada. Fechando canal em instantes...').catch(() => {});
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
-        }, 1500);
+        }, 2000);
         return;
     }
 
-    // Botão "Painel do Mediador" (Envia os botões de controle na conversa)
     if (customId === 'btn_painel_mediador') {
         const rowMediador = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -227,29 +285,7 @@ async function handleButtonInteraction(
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
 
-                // Em vez de chamar o Pix direto, dispara o painel de confirmação com bolinhas vermelhas 🔴
-                const statusJogadores = jogadoresPartida.map(id => `🔴 <@${id}>`).join('\n');
-                const embedConfirmacao = new EmbedBuilder()
-                    .setColor('#2b2d31')
-                    .setTitle(`Confirmação de Partida 🎮`)
-                    .setDescription(`🎮 Modo: ${fila.formato}\n💰 Aposta: ${formatarMoeda(fila.valor)}`)
-                    .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
-                    .setFooter({ text: 'Ambos os jogadores devem confirmar para iniciar a partida.' });
-
-                const rowConfirm = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`btn_confirmar_misto`)
-                        .setLabel('Confirmar')
-                        .setStyle(ButtonStyle.Success)
-                        .setEmoji('✅'),
-                    new ButtonBuilder()
-                        .setCustomId(`btn_cancelar_misto`)
-                        .setLabel('Cancelar')
-                        .setStyle(ButtonStyle.Danger)
-                        .setEmoji('✖️')
-                );
-
-                await interaction.channel.send({ embeds: [embedConfirmacao], components: [rowConfirm] });
+                await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor);
             }
 
         } else if (acao === 'sair') {
@@ -264,7 +300,7 @@ async function handleButtonInteraction(
     }
 
     // =========================================================================
-    // 2. TRATAMENTO PARA FILAS NORMAIS (separadas por |)
+    // 2. TRATAMENTO PARA FILAS NORMAIS
     // =========================================================================
     if (customId.includes('|')) {
         const partes = customId.split('|');
@@ -341,30 +377,8 @@ async function handleButtonInteraction(
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
 
-            // Dispara o painel de confirmação com bolinhas vermelhas 🔴 para as filas normais
-            const statusJogadores = jogadoresPartida.map(j => `🔴 <@${j.id}>`).join('\n');
-            const embedConfirmacao = new EmbedBuilder()
-                .setColor('#2b2d31')
-                .setTitle(`Confirmação de Partida 🎮`)
-                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta: ${formatarMoeda(valor)}`)
-                .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
-                .setFooter({ text: 'Ambos os jogadores devem confirmar para iniciar a partida.' });
-
-            const rowConfirm = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`btn_confirmar_normal`)
-                    .setLabel('Confirmar')
-                    .setStyle(ButtonStyle.Success)
-                    .setEmoji('✅'),
-                new ButtonBuilder()
-                    .setCustomId(`btn_cancelar_normal`)
-                    .setLabel('Cancelar')
-                    .setStyle(ButtonStyle.Danger)
-                    .setEmoji('✖️')
-            );
-
-            // Cria um canal específico para a partida ou envia no canal atual conforme sua preferência
-            await interaction.channel.send({ embeds: [embedConfirmacao], components: [rowConfirm] });
+            const idsJogadores = jogadoresPartida.map(j => j.id);
+            await criarCanalPrivadoEEnviarConfirmacao(idsJogadores, modo, valor);
         }
         return;
     }
@@ -400,7 +414,7 @@ async function handleButtonInteraction(
     if (customId === 'btn_ver_qrcode') {
         const config = pixConfig[user.id];
         if (!config || !config.chave) {
-            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix! Clique em "Configurar Pix".', ephemeral: true }).catch(() => {});
+            return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true }).catch(() => {});
         }
         return interaction.followUp({ content: `📷 **Sua Chave Pix Cadastrada:** \`${config.chave}\` (${config.nome})`, ephemeral: true }).catch(() => {});
     }
@@ -410,14 +424,14 @@ async function handleButtonInteraction(
         if (!config || !config.chave) {
             return interaction.followUp({ content: '❌ Você ainda não configurou sua chave Pix!', ephemeral: true }).catch(() => {});
         }
-        return interaction.followUp({ content: `🧪 **Pix funcionando perfeitamente!** Chave configurada: \`${config.chave}\``, ephemeral: true }).catch(() => {});
+        return interaction.followUp({ content: `🧪 **Pix funcionando perfeitamente!** Chave: \`${config.chave}\``, ephemeral: true }).catch(() => {});
     }
 
     // =========================================================================
     // 5. BOTÃO DE FECHAR TICKET
     // =========================================================================
     if (customId === 'fechar_ticket') {
-        await interaction.followUp({ content: '🔒 Fechando este canal de atendimento em instantes...', ephemeral: true }).catch(() => {});
+        await interaction.followUp({ content: '🔒 Fechando canal em instantes...', ephemeral: true }).catch(() => {});
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
         }, 3000);
