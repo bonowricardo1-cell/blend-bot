@@ -391,7 +391,7 @@ async function handleButtonInteraction(
             }
 
             fila.emus.push(user.id);
-            await interaction.followUp({ content: `✅ Vaga garantida!`, ephemeral: true }).catch(() => {});
+            
             await atualizarPainelMisto(interaction, chaveFilaMista);
 
             if (fila.emus.length >= (fila.maxTotal || 2)) {
@@ -458,7 +458,7 @@ async function handleButtonInteraction(
             }
 
             listaJogadores.push({ id: user.id, opcao: opcaoEscolhida });
-            await interaction.followUp({ content: '✅ Vaga garantida!', ephemeral: true }).catch(() => {});
+            
         } else if (acao === 'sair') {
             const index = listaJogadores.findIndex(j => j.id === user.id);
             if (index !== -1) {
