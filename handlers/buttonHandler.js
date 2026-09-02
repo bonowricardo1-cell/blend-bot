@@ -71,7 +71,7 @@ async function handleButtonInteraction(
     // =========================================================================
     // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE COM LOGO
     // =========================================================================
-    async function enviarPainelProfissionalPartida(canal, modoTexto, statusJogadoresTexto, valorApostaBase) {
+    async function enviarPainelProfissionalPartida(canal, tipoPartida, modoTexto, statusJogadoresTexto, valorApostaBase, selecaoTexto) {
         try {
             const mensagens = await canal.messages.fetch({ limit: 20 });
             await canal.bulkDelete(mensagens, true).catch(() => {});
@@ -82,16 +82,15 @@ async function handleButtonInteraction(
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
         const valorTotalPartida = Number((parseFloat(valorApostaBase) + taxaAdmFixa).toFixed(2));
 
-        // 1. Embed Principal Profissional
         const embedOficial = new EmbedBuilder()
             .setTitle(`Fila #1`)
             .setThumbnail(orgIcon)
             .setColor('#1f2023')
             .addFields(
                 { name: 'Formato:', value: 'Freefire', inline: true },
-                { name: 'Tipo:', value: 'Misto', inline: true },
+                { name: 'Tipo:', value: tipoPartida, inline: true },
                 { name: 'Modo:', value: modoTexto, inline: true },
-                { name: 'Seleção:', value: '1 Emu', inline: true },
+                { name: 'Seleção:', value: selecaoTexto, inline: true },
                 { name: 'Valor:', value: `${formatarMoeda(valorApostaBase)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`, inline: false },
                 { name: '👥 Jogadores', value: statusJogadoresTexto, inline: false },
                 { name: '🛡️ Mediador', value: `<@${mediadorId}>`, inline: false }
@@ -115,10 +114,7 @@ async function handleButtonInteraction(
 
         await canal.send({ embeds: [embedOficial], components: [rowBotoesSala] });
 
-        // 2. Embed de Pagamento com QR Code Vermelho + Logo Central da Org
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
-        
-        // Monta a URL do QR Code com alta correção de erro (H) para suportar logo no centro
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(configPix.chave)}&color=ff0000&bgcolor=ffffff&ecc=H`;
 
         const embedPix = new EmbedBuilder()
@@ -136,17 +132,11 @@ async function handleButtonInteraction(
         await canal.send({ embeds: [embedPix] });
     }
 
-    async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta) {
+    async function criarCanalPrivadoEEnviarConfirmacao(jogadoresIds, modoTexto, valorAposta, tipoPartida, selecaoTexto) {
         try {
             const permissionOverwrites = [
-                {
-                    id: guild.id,
-                    deny: [PermissionFlagsBits.ViewChannel],
-                },
-                {
-                    id: client.user.id,
-                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages],
-                }
+                { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+                { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages] }
             ];
 
             for (const id of jogadoresIds) {
@@ -170,7 +160,7 @@ async function handleButtonInteraction(
                 .setColor('#2b2d31')
                 .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
                 .setThumbnail(orgIcon)
-                .setDescription(`🎮 Modo: ${modoTexto}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
+                .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida})\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
 
@@ -230,13 +220,28 @@ async function handleButtonInteraction(
             const descOriginal = embed.description || '';
             let valorApostaMatch = descOriginal.match(/R\$\s*([\d,.]+)/);
             let valorAposta = valorApostaMatch ? parseFloat(valorApostaMatch[1].replace('.', '').replace(',', '.')) : 0;
+            
+            let modoPartida = '2x2';
+            if (descOriginal.includes('3x3')) modoPartida = '3x3';
+            else if (descOriginal.includes('4x4')) modoPartida = '4x4';
+            else if (descOriginal.includes('1x1')) modoPartida = '1x1';
+
+            let tipoPartida = 'Mobile';
+            let selecaoTexto = 'Mobile';
+            if (descOriginal.includes('(Emu)')) {
+                tipoPartida = 'Emu';
+                selecaoTexto = '1 Emu';
+            } else if (descOriginal.includes('(Misto)')) {
+                tipoPartida = 'Misto';
+                selecaoTexto = 'Misto';
+            }
 
             const jogadoresMencionados = linhas.map(l => {
                 const match = l.match(/<@!?(\d+)>/);
                 return match ? `<@${match[1]}>` : null;
             }).filter(Boolean).join(' vs ');
 
-            await enviarPainelProfissionalPartida(interaction.channel, '2x2', jogadoresMencionados || 'Jogadores', valorAposta);
+            await enviarPainelProfissionalPartida(interaction.channel, tipoPartida, modoPartida, jogadoresMencionados || 'Jogadores', valorAposta, selecaoTexto);
         } else {
             await message.edit({ embeds: [novoEmbed], components: message.components }).catch(() => {});
         }
@@ -247,8 +252,7 @@ async function handleButtonInteraction(
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
         
-        // Pega o valor atual do embed da partida anterior para calcular exato com a taxa
-        let valorApostaBase = 0.20; // padrão caso não ache
+        let valorApostaBase = 0.20;
         if (message && message.embeds && message.embeds[0]) {
             const embedAtual = message.embeds[0];
             const campoValor = embedAtual.fields.find(f => f.name.toLowerCase().includes('valor'));
@@ -358,7 +362,7 @@ async function handleButtonInteraction(
                     .setColor('#0099ff');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
-                await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor);
+                await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor, 'Misto', 'Misto');
             }
 
         } else if (acao === 'sair') {
@@ -448,7 +452,21 @@ async function handleButtonInteraction(
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
 
             const idsJogadores = jogadoresPartida.map(j => j.id);
-            await criarCanalPrivadoEEnviarConfirmacao(idsJogadores, modo, valor);
+            
+            // Detecta se o canal é Mobile ou Emu pelo nome do canal
+            const nomeCanal = interaction.channel.name.toLowerCase();
+            let tipoPartida = 'Mobile';
+            let selecaoTexto = 'Mobile';
+            
+            if (nomeCanal.includes('emu')) {
+                tipoPartida = 'Emu';
+                selecaoTexto = '1 Emu';
+            } else if (nomeCanal.includes('misto')) {
+                tipoPartida = 'Misto';
+                selecaoTexto = 'Misto';
+            }
+
+            await criarCanalPrivadoEEnviarConfirmacao(idsJogadores, modo, valor, tipoPartida, selecaoTexto);
         }
         return;
     }
