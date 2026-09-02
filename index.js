@@ -279,7 +279,7 @@ client.on('messageCreate', async (message) => {
 
         const botoes = new ActionRowBuilder();
 
-        if (tipoModo.toLowerCase().includes('1x1')) {
+       if (tipoModo.toLowerCase().includes('1x1')) {
         botoes.addComponents(
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
@@ -291,7 +291,7 @@ client.on('messageCreate', async (message) => {
             new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger)
         );
-    
+    }
         }
 
         await message.channel.send({ embeds: [embed], components: [botoes] });
