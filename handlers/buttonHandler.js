@@ -1,5 +1,8 @@
 const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
+// Coloque o link direto do seu GIF do samurai aqui (ou importe do seu arquivo de configuração)
+const GIF_SAMURAI_THUMBNAIL = 'URL_DO_SEU_GIF_AQUI'; 
+
 async function handleButtonInteraction(
     interaction, 
     client, 
@@ -15,7 +18,6 @@ async function handleButtonInteraction(
     const { customId, user, message, guild } = interaction;
     if (!customId) return;
 
-    const orgIcon = guild ? guild.iconURL({ dynamic: true }) : null;
     const taxaAdmFixa = 0.15;
 
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
@@ -84,7 +86,7 @@ async function handleButtonInteraction(
 
         const embedOficial = new EmbedBuilder()
             .setTitle(`Fila #1`)
-            .setThumbnail(orgIcon)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
             .setColor('#1f2023')
             .addFields(
                 { name: 'Formato:', value: 'Freefire', inline: true },
@@ -120,7 +122,7 @@ async function handleButtonInteraction(
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado')
-            .setThumbnail(orgIcon)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
             .addFields(
                 { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
@@ -162,7 +164,7 @@ async function handleButtonInteraction(
             const embedConfirmacao = new EmbedBuilder()
                 .setColor('#2b2d31')
                 .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
-                .setThumbnail(orgIcon)
+                .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
                 .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
@@ -271,7 +273,7 @@ async function handleButtonInteraction(
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado (Reenviado)')
-            .setThumbnail(orgIcon)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
             .addFields(
                 { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
@@ -284,9 +286,6 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // BOTÃO DE FORNECER SALA (RENOMEIA O CANAL PARA O VALOR DO PRÊMIO DO VENCEDOR)
-    // =========================================================================
     if (customId === 'btn_fornecer_sala') {
         try {
             let valorApostaBase = 0;
@@ -299,19 +298,14 @@ async function handleButtonInteraction(
                 }
             }
 
-            // Calcula o prêmio total descontando/somando de acordo com a regra da aposta (Ex: 2 jogadores apostando 1,00 = 2,00 do prêmio)
-            // Como temos a aposta base por pessoa, vamos estimar o prêmio multiplicando por 2 (ou pegando o valor base total da sala se aplicável)
-            // Pelo seu relato: "tipo fila de 1,00... sobrando dois 2 real que e o valor do ganhador" -> O valor do prêmio é o valor base da aposta da fila multiplicado por 2 (ou o valor total sem a taxa administrativa).
             let valorPremioVencedor = valorApostaBase * 2;
             if (isNaN(valorPremioVencedor) || valorPremioVencedor <= 0) {
-                valorPremioVencedor = 2.00; // Valor padrão de segurança caso não detecte
+                valorPremioVencedor = 2.00;
             }
 
-            // Formata o nome do canal (ex: pagar-2-00)
             const valorFormatadoNome = valorPremioVencedor.toFixed(2).replace('.', '-');
             const novoNomeCanal = `pagar-${valorFormatadoNome}`;
 
-            // Renomeia o canal atual
             await interaction.channel.setName(novoNomeCanal).catch(err => console.error('Erro ao renomear canal:', err));
 
             await interaction.followUp({ 
@@ -401,7 +395,7 @@ async function handleButtonInteraction(
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
                     .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-                    .setThumbnail(orgIcon)
+                    .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
                     .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
 
@@ -477,7 +471,7 @@ async function handleButtonInteraction(
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail(orgIcon)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
             .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
@@ -489,7 +483,7 @@ async function handleButtonInteraction(
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-                .setThumbnail(orgIcon)
+                .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
                 .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
                 .setColor('#0099ff');
 
