@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (RODÍZIO DE ADM + PIX EM JSON + FILAS MISTAS)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (COM GIF DO SAMURAI EM THUMBNAIL)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
@@ -36,7 +36,7 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// Link do GIF card do samurai otimizado para todas as filas e embeds
+// Link do GIF card do samurai otimizado como Thumbnail (Canto superior direito)
 const GIF_SAMURAI_THUMBNAIL = 'https://cdn.discordapp.com/attachments/1461401389711228980/1544899512349196328/Samurai_slashing_text_animation_202609022217-ezgif.com-optimize.gif';
 
 // ==========================================
@@ -103,7 +103,6 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const taxaAdm = 0.15;
         
-        // Mapeia os jogadores com bolinhas vermelhas inicialmente 🔴 (Padrão Nulla)
         const statusJogadores = jogadoresPartida.map(p => {
             const id = typeof p === 'object' ? p.id : p;
             return `🔴 <@${id}>`;
@@ -111,7 +110,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setImage(GIF_SAMURAI_THUMBNAIL)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Definido como Thumbnail no canto
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
@@ -148,6 +147,7 @@ async function atualizarPainelMediadoresPorMensagem(message) {
 
     const embedAtualizado = new EmbedBuilder()
         .setColor('#FF0000')
+        .setThumbnail(GIF_SAMURAI_THUMBNAIL)
         .setTitle('⚔️ SAMURAI E-SPORTS | FILA DE MEDIADORES')
         .setDescription('Clique em **Entrar na Fila** para assumir uma partida ou em **Sair da Fila** caso precise sair.')
         .addFields({ name: 'Status da Fila', value: statusTexto, inline: false })
@@ -202,7 +202,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-            .setImage(GIF_SAMURAI_THUMBNAIL)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Thumbnail no canto
             .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
@@ -237,7 +237,7 @@ client.on('messageCreate', async (message) => {
 
         const embedTicket = new EmbedBuilder()
             .setTitle('SAMURAI E-SPORTS | Central de Atendimento 🎫')
-            .setImage(GIF_SAMURAI_THUMBNAIL)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
             .setColor('#0099ff');
 
@@ -276,7 +276,7 @@ client.on('messageCreate', async (message) => {
 
         const embed = new EmbedBuilder()
             .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setImage(GIF_SAMURAI_THUMBNAIL)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Definido como Thumbnail no canto
             .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
@@ -315,7 +315,7 @@ client.on('messageCreate', async (message) => {
 
         const embedPainel = new EmbedBuilder()
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
-            .setImage(GIF_SAMURAI_THUMBNAIL)
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Thumbnail no canto
             .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
@@ -329,6 +329,7 @@ client.on('messageCreate', async (message) => {
     if (message.content.toLowerCase() === '!mediador') {
         const embed = new EmbedBuilder()
             .setTitle('⚔️ SAMURAI E-SPORTS | FILA DE MEDIADORES')
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription('Clique em **Entrar na Fila** para assumir uma partida ou em **Sair da Fila** caso precise sair.')
             .addFields({ name: 'Status da Fila', value: 'Nenhum mediador na fila no momento.', inline: false })
             .setColor('#FF0000');
@@ -348,6 +349,7 @@ client.on('messageCreate', async (message) => {
     if (message.content.toLowerCase() === '!pix') {
         const embed = new EmbedBuilder()
             .setTitle('⚡ Configuração de Pix & Mediação')
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription('Clique no botão abaixo para configurar sua **Chave Pix**, **Nome do Titular** e **Mensagem de Pré-Pagamento**.')
             .setColor('#FF0000');
 
@@ -416,6 +418,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const embedTicketAberto = new EmbedBuilder()
                 .setTitle(`🎫 Atendimento | ${opcaoEscolhida.toUpperCase()}`)
+                .setThumbnail(GIF_SAMURAI_THUMBNAIL)
                 .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.`)
                 .setColor('#0099ff');
 
