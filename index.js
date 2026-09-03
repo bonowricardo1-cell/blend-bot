@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (COM GIF DO SAMURAI EM THUMBNAIL)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (THUMBNAIL IDÊNTICO À ORG DE REFERÊNCIA)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
@@ -36,7 +36,7 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// Link do GIF card do samurai otimizado como Thumbnail (Canto superior direito)
+// Link da Thumbnail do Samurai (Canto superior direito, igual ao padrão da referência)
 const GIF_SAMURAI_THUMBNAIL = 'https://cdn.discordapp.com/attachments/1461401389711228980/1544899512349196328/Samurai_slashing_text_animation_202609022217-ezgif.com-optimize.gif';
 
 // ==========================================
@@ -110,7 +110,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Definido como Thumbnail no canto
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
@@ -202,7 +202,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Thumbnail no canto
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
@@ -276,7 +276,7 @@ client.on('messageCreate', async (message) => {
 
         const embed = new EmbedBuilder()
             .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Definido como Thumbnail no canto
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
@@ -315,7 +315,7 @@ client.on('messageCreate', async (message) => {
 
         const embedPainel = new EmbedBuilder()
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Thumbnail no canto
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
