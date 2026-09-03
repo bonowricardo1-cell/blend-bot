@@ -1,7 +1,7 @@
 const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 // Coloque o link direto do seu GIF do samurai aqui (ou importe do seu arquivo de configuração)
-const GIF_SAMURAI_THUMBNAIL = 'URL_DO_SEU_GIF_AQUI'; 
+const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/PrBgStRC/Samurai-slashing-text-animation-202609022217-ezgif-com-optimize.gif'; 
 
 async function handleButtonInteraction(
     interaction, 
