@@ -108,7 +108,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
@@ -199,7 +199,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
@@ -234,7 +234,7 @@ client.on('messageCreate', async (message) => {
 
         const embedTicket = new EmbedBuilder()
             .setTitle('SAMURAI E-SPORTS | Central de Atendimento 🎫')
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
             .setColor('#0099ff');
 
@@ -273,7 +273,7 @@ client.on('messageCreate', async (message) => {
 
         const embed = new EmbedBuilder()
             .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-           .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
@@ -285,14 +285,12 @@ client.on('messageCreate', async (message) => {
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
             );
-       } else {
-            // Fila 2x2, 3x3, 4x4 (Mobile e Emulador) padronizadas com o Samurai no thumbnail e botão Sair com o X
+        } else {
             botoes.addComponents(
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
             );
-        
         }
 
         await message.channel.send({ embeds: [embed], components: [botoes] });
@@ -314,7 +312,7 @@ client.on('messageCreate', async (message) => {
 
         const embedPainel = new EmbedBuilder()
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHdudGQ1eG1vdmR1aWcxdnVsbnFhaGZjMTJ5MTFhM2dtZTc0aDI4biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/TKxt7oY3C5A7CpLRGZ/giphy.gif')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
@@ -366,7 +364,6 @@ client.on('messageCreate', async (message) => {
 // INTERAÇÕES (TICKETS E BOTÕES)
 // ==========================================
 client.on('interactionCreate', async (interaction) => {
-    // 1. Tratamento de modais locais
     if (interaction.isModalSubmit() && interaction.customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -382,7 +379,6 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // 2. Tratamento do Menu de Tickets (Criar Canal Privado)
     if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
         if (!interaction.deferred && !interaction.replied) {
             await interaction.deferReply({ ephemeral: true }).catch(() => {});
@@ -438,7 +434,6 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // 3. Delega os botões e interações complexas para o arquivo separado
     await handleButtonInteraction(
         interaction, 
         client, 
