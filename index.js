@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (THUMBNAIL IDÊNTICO À ORG DE REFERÊNCIA)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (THUMBNAIL ANIMADO IGUAL AO CHEFINHO)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
@@ -36,7 +36,7 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// Link da Thumbnail do Samurai (Canto superior direito, igual ao padrão da referência)
+// Link do GIF animado do samurai posicionado no Thumbnail (Canto superior direito)
 const GIF_SAMURAI_THUMBNAIL = 'https://cdn.discordapp.com/attachments/1461401389711228980/1544899512349196328/Samurai_slashing_text_animation_202609022217-ezgif.com-optimize.gif';
 
 // ==========================================
