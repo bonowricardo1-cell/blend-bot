@@ -108,7 +108,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
+            .setImage('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
@@ -199,7 +199,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
+            .setImage('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
@@ -234,7 +234,7 @@ client.on('messageCreate', async (message) => {
 
         const embedTicket = new EmbedBuilder()
             .setTitle('SAMURAI E-SPORTS | Central de Atendimento 🎫')
-            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
+            .setImage('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
             .setColor('#0099ff');
 
@@ -273,7 +273,7 @@ client.on('messageCreate', async (message) => {
 
         const embed = new EmbedBuilder()
             .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
+            .setImage('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
@@ -312,7 +312,7 @@ client.on('messageCreate', async (message) => {
 
         const embedPainel = new EmbedBuilder()
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
+            .setImage('https://cdn.discordapp.com/attachments/1461401389711228980/1544868037188915210/Fire_wave_transitions_text_202609022133.mp4')
             .setDescription(`🎮 Modo:\n${configuracao.formato}\n\n💰 Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
