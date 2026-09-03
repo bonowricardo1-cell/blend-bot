@@ -37,7 +37,7 @@ let filaMediadores = [];
 let pixConfig = {};
 
 // ⚠️ COLE AQUI O LINK DO SEU GIF DO SAMURAI OTIMIZADO E LEVE UPADO NO DISCORD:
-const GIF_SAMURAI_THUMBNAIL = 'blob:https://discord.com/28d4413d-bd5f-474f-bd16-ed160069dd23;
+const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/PrBgStRC/Samurai-slashing-text-animation-202609022217-ezgif-com-optimize.gif;
 
 // ==========================================
 // PERSISTÊNCIA DO PIX EM JSON
