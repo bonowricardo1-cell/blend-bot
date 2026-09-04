@@ -36,8 +36,8 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// ⚠️ COLE AQUI O LINK DO SEU GIF DO SAMURAI OTIMIZADO E LEVE UPADO NO DISCORD:
-const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif';
+// ⚠️ COLE AQUI O LINK DO SEU GIF DO SAMURAI OTIMIZADO E LEVE UPADO NO DISCORD
+const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2';
 
 // ==========================================
 // PERSISTÊNCIA DO PIX EM JSON
