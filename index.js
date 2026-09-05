@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (LAYOUT LIMPO E CORO NA THUMBNAIL)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (COM POSTAGEM EM MASSA DE TODAS AS FAIXAS)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -34,6 +34,9 @@ const client = new Client({
 const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
+
+// Lista de todos os valores solicitados em ordem (do maior para o menor ou como preferir)
+const VALORES_PADRAO = [100, 70, 50, 35, 20, 10, 5, 3, 2, 1, 0.75, 0.50, 0.20];
 
 // Link da Coroa Animada para usar na Thumbnail (substituindo o boneco azul)
 const THUMBNAIL_COROA = 'https://cdn.discordapp.com/emojis/1545612976877346826.gif';
@@ -222,6 +225,58 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 }
 
 // ==========================================
+// FUNÇÃO AUXILIAR PARA CRIAR PAINÉIS INDIVIDUAIS
+// ==========================================
+async function enviarPainelNoCanal(channel, tipoModo, valor, tipoCategoria) {
+    const taxaAdm = 0.15;
+    const precoTotal = valor + taxaAdm;
+
+    let nomeFormato = `${tipoModo.toUpperCase()} Mobile`;
+    if (tipoCategoria === 'emulador') {
+        nomeFormato = `${tipoModo.toUpperCase()} Emulador`;
+    } else if (tipoCategoria === 'misto') {
+        nomeFormato = `${tipoModo.toUpperCase()} Misto`;
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle(`${nomeFormato} | SAMURAI E-SPORTS`)
+        .setThumbnail(THUMBNAIL_COROA)
+        .addFields(
+            { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
+            { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+            { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
+        )
+        .setColor('#0099ff');
+
+    const botoes = new ActionRowBuilder();
+
+    if (tipoCategoria === 'misto') {
+        // Se for misto, aplica os botões de emu correspondentes
+        const chaveFila = `${tipoModo}-misto`;
+        const linhaMisto = criarBotoesMisto(chaveFila);
+        // Atualiza a chave correta no objeto da fila se necessário e envia
+        await channel.send({ embeds: [embed], components: [linhaMisto] });
+        return;
+    }
+
+    if (tipoModo.toLowerCase().includes('1x1')) {
+        botoes.addComponents(
+            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
+            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
+            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+        );
+    } else {
+        botoes.addComponents(
+            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+        );
+    }
+
+    await channel.send({ embeds: [embed], components: [botoes] });
+}
+
+// ==========================================
 // COMANDOS DE MENSAGEM
 // ==========================================
 client.on('messageCreate', async (message) => {
@@ -265,10 +320,38 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
+    // ==========================================
+    // COMANDO DE POSTAGEM EM MASSA (TODOS OS VALORES)
+    // Exemplo: !postar tudo mobile 1x1, !postar tudo emulador 2x2, etc.
+    // Ou simplesmente: !postar tudo mobile (manda todas as faixas para o 1x1, 2x2, 3x3, 4x4)
+    // ==========================================
+    if (message.content.startsWith('!postar tudo')) {
+        const args = message.content.trim().split(/\s+/);
+        // Ex: !postar tudo mobile
+        const categoriaFila = (args[2] || 'mobile').toLowerCase(); // mobile, emulador, misto
+        const formatoEspecifico = args[3] ? args[3].toLowerCase() : null; // opcional: 1x1, 2x2, etc.
+
+        await message.delete().catch(() => {});
+        const avisando = await message.channel.send(`⏳ Gerando e enviando **todos os painéis** para **${categoriaFila.toUpperCase()}** com todas as faixas de valores. Aguarde...`);
+
+        const formatos = formatoEspecifico ? [formatoEspecifico] : ['1x1', '2x2', '3x3', '4x4'];
+
+        for (const fmt of formatos) {
+            for (const val of VALORES_PADRAO) {
+                await enviarPainelNoCanal(message.channel, fmt, val, categoriaFila);
+                // Pequeno delay para evitar flood/rate limit do Discord
+                await new Promise(resolve => setTimeout(resolve, 600));
+            }
+        }
+
+        await avisando.delete().catch(() => {});
+        return;
+    }
+
     if (message.content.startsWith('!postar')) {
         const args = message.content.trim().split(/\s+/);
         if (args.length < 3) {
-            return message.reply('Use o formato correto com espaço: `!postar 1x1 2.00`');
+            return message.reply('Use o formato correto com espaço: `!postar 1x1 2.00` ou use em massa com `!postar tudo mobile`');
         }
 
         const tipoModo = args[1];
@@ -279,45 +362,15 @@ client.on('messageCreate', async (message) => {
         }
 
         await message.delete().catch(() => {});
-        const taxaAdm = 0.15;
-        const precoTotal = valor + taxaAdm;
-
-        // Identifica automaticamente se é Mobile ou Emulador pelo canal ou argumento
-        let nomeFormato = `${tipoModo.toUpperCase()} Mobile`;
+        let tipoCategoria = 'mobile';
         const channelName = message.channel.name.toLowerCase();
         if (channelName.includes('emu')) {
-            nomeFormato = `${tipoModo.toUpperCase()} Emulador`;
+            tipoCategoria = 'emulador';
         } else if (channelName.includes('misto')) {
-            nomeFormato = `${tipoModo.toUpperCase()} Misto`;
+            tipoCategoria = 'misto';
         }
 
-        const embed = new EmbedBuilder()
-            .setTitle(`${nomeFormato} | SAMURAI E-SPORTS`)
-            .setThumbnail(THUMBNAIL_COROA)
-            .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
-                { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
-            )
-            .setColor('#0099ff');
-
-        const botoes = new ActionRowBuilder();
-
-        if (tipoModo.toLowerCase().includes('1x1')) {
-            botoes.addComponents(
-                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
-                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
-                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-            );
-        } else {
-            botoes.addComponents(
-                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
-                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-            );
-        }
-
-        await message.channel.send({ embeds: [embed], components: [botoes] });
+        await enviarPainelNoCanal(message.channel, tipoModo, valor, tipoCategoria);
         return;
     }
 
