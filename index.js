@@ -63,7 +63,7 @@ async function salvarPix() {
 }
 
 function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 client.once('ready', () => {
@@ -117,7 +117,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
             .setTitle(`${EMOJI_COROA} SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: `${EMOJI_FORMATO} Modo:`, value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorAposta)} (Taxa ADM: ${formatarMoeda(taxaAdm)})`, inline: false },
                 { name: '🛡️ Mediador Designado:', value: `<@${admId}>`, inline: false },
                 { name: '👤 Jogadores', value: statusJogadores, inline: false }
             )
@@ -197,7 +197,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
         const taxaAdm = 0.15;
-        const precoTotal = fila.valor + taxaAdm;
+        const precoTotal = Number(fila.valor) + taxaAdm;
 
         let listaTexto = 'Sem jogadores...';
         if (fila.emus && fila.emus.length > 0) {
@@ -209,7 +209,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: fila.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(fila.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(fila.valor)} + Taxa ADM: ${formatarMoeda(taxaAdm)})`, inline: false },
                 { name: '👤 Jogadores', value: listaTexto, inline: false }
             )
             .setColor('#0099ff');
@@ -268,14 +268,14 @@ client.on('messageCreate', async (message) => {
     if (message.content.startsWith('!postar')) {
         const args = message.content.trim().split(/\s+/);
         if (args.length < 3) {
-            return message.reply('Use o formato correto com espaço: `!postar 1x1 2.00`');
+            return message.reply('Use o formato correto com espaço: `!postar 1x1 100.00`');
         }
 
         const tipoModo = args[1];
         const valor = parseFloat(args[2].replace(',', '.'));
 
         if (isNaN(valor)) {
-            return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 2.00`');
+            return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 100.00`');
         }
 
         await message.delete().catch(() => {});
@@ -295,7 +295,7 @@ client.on('messageCreate', async (message) => {
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + Taxa ADM: ${formatarMoeda(taxaAdm)})`, inline: false },
                 { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
             )
             .setColor('#0099ff');
@@ -339,7 +339,7 @@ client.on('messageCreate', async (message) => {
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: configuracao.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(configuracao.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(configuracao.valor)} + Taxa ADM: ${formatarMoeda(taxaAdm)})`, inline: false },
                 { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
             )
             .setColor('#0099ff');
