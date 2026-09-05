@@ -135,15 +135,15 @@ async function handleButtonInteraction(
         const valorTotalPartida = Number((parseFloat(valorApostaBase) + taxaAdmFixa).toFixed(2));
 
         const embedOficial = new EmbedBuilder()
-            .setTitle(`Fila #1`)
+            .setTitle(`<a:coroa:1495438969981108224> Fila #1`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .setColor('#1f2023')
             .addFields(
-                { name: 'Formato:', value: 'Freefire', inline: true },
-                { name: 'Tipo:', value: tipoPartida, inline: true },
-                { name: 'Modo:', value: modoTexto, inline: true },
-                { name: 'Seleção:', value: selecaoTexto, inline: true },
-                { name: 'Valor:', value: `${formatarMoeda(valorApostaBase)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`, inline: false },
+                { name: '<a:seta:1495438968765022389> Formato:', value: 'Freefire', inline: true },
+                { name: '<a:seta:1495438968765022389> Tipo:', value: tipoPartida, inline: true },
+                { name: '<a:seta:1495438968765022389> Modo:', value: modoTexto, inline: true },
+                { name: '<a:seta:1495438968765022389> Seleção:', value: selecaoTexto, inline: true },
+                { name: '<a:moedas:149543896733223666> Valor:', value: `${formatarMoeda(valorApostaBase)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`, inline: false },
                 { name: '👥 Jogadores', value: statusJogadoresTexto, inline: false },
                 { name: '🛡️ Mediador', value: `<@${mediadorId}>`, inline: false }
             );
@@ -171,12 +171,12 @@ async function handleButtonInteraction(
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
-            .setTitle('💰 Pagamento Liberado')
+            .setTitle('<a:moedas:149543896733223666> Pagamento Liberado')
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .addFields(
-                { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
-                { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
-                { name: 'Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
+                { name: '<a:seta:1495438968765022389> Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
+                { name: '<a:seta:1495438968765022389> Recebedor:', value: `\`${configPix.nome}\``, inline: false },
+                { name: '<a:moedas:149543896733223666> Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
             )
             .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.`)
             .setImage(qrCodeUrl);
@@ -213,9 +213,9 @@ async function handleButtonInteraction(
             const statusJogadores = jogadoresIds.map(id => `🔴 <@${id}>`).join('\n');
             const embedConfirmacao = new EmbedBuilder()
                 .setColor('#2b2d31')
-                .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
+                .setTitle(`<a:coroa:1495438969981108224> SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-                .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
+                .setDescription(`<a:seta:1495438968765022389> Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n<a:moedas:149543896733223666> Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
 
@@ -327,12 +327,12 @@ async function handleButtonInteraction(
 
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
-            .setTitle('💰 Pagamento Liberado (Reenviado)')
+            .setTitle('<a:moedas:149543896733223666> Pagamento Liberado (Reenviado)')
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .addFields(
-                { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
-                { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
-                { name: 'Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
+                { name: '<a:seta:1495438968765022389> Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
+                { name: '<a:seta:1495438968765022389> Recebedor:', value: `\`${configPix.nome}\``, inline: false },
+                { name: '<a:moedas:149543896733223666> Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
             )
             .setDescription('Escaneie o QR Code abaixo com o aplicativo do seu banco.')
             .setImage(qrCodeUrl);
@@ -502,9 +502,9 @@ async function handleButtonInteraction(
 
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
-                    .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
+                    .setTitle(`<a:coroa:1495438969981108224> ${fila.formato} | SAMURAI E-SPORTS`)
                     .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-                    .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
+                    .setDescription(`<a:seta:1495438968765022389> Modo:\n${fila.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
@@ -578,9 +578,9 @@ async function handleButtonInteraction(
         }
 
         const novoEmbed = new EmbedBuilder()
-            .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+            .setTitle(`<a:coroa:1495438969981108224> ${modo.toUpperCase()} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-            .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
+            .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
         await message.edit({ embeds: [novoEmbed] }).catch(() => {});
@@ -590,9 +590,9 @@ async function handleButtonInteraction(
             global.filasGlobais.set(chaveFila, []);
 
             const embedVazio = new EmbedBuilder()
-                .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setTitle(`<a:coroa:1495438969981108224> ${modo.toUpperCase()} | SAMURAI E-SPORTS`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-                .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
+                .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
                 .setColor('#0099ff');
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
