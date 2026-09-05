@@ -483,10 +483,14 @@ async function handleButtonInteraction(
 
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
-                    .setTitle(`🔵 ${fila.formato} | SAMURAI E-SPORTS`) 
+                    .setTitle(`${fila.formato} | Fila`)
                     .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-                    .setDescription(`<a:seta:1495438968765022389> Modo:\n${fila.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
-                    .setColor('#0099ff');
+                    .addFields(
+                        { name: 'Formato:', value: fila.formato, inline: true },
+                        { name: 'Preço:', value: `R$ ${formatarMoeda(fila.valor)}`, inline: true },
+                        { name: 'Jogadores', value: 'Sem jogadores...', inline: false }
+                    )
+                    .setColor('#1f2023');
 
                 await message.edit({ embeds: [embedVazio] }).catch(() => {});
                 await criarCanalPrivadoEEnviarConfirmacao(jogadoresPartida, fila.formato, fila.valor, 'Misto', 'Misto', 'misto');
@@ -552,17 +556,20 @@ async function handleButtonInteraction(
             }
         }
 
-        let textoJogadores = `👥 **Jogadores na Fila (0/${maxJogadores})**`;
+        let textoJogadores = 'Sem jogadores...';
         if (listaJogadores.length > 0) {
-            textoJogadores = `👥 **Jogadores na Fila (${listaJogadores.length}/${maxJogadores}):**\n` + 
-                listaJogadores.map(j => `<@${j.id}> | ${j.opcao}`).join('\n');
+            textoJogadores = listaJogadores.map(j => `<@${j.id}> | ${j.opcao}`).join('\n');
         }
 
         const novoEmbed = new EmbedBuilder()
-            .setTitle(`🔵 ${modo.toUpperCase()} | SAMURAI E-SPORTS`) 
+            .setTitle(`${modo} | Fila`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-            .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
-            .setColor('#0099ff');
+            .addFields(
+                { name: 'Formato:', value: `${modo} Mobile`, inline: true },
+                { name: 'Preço:', value: `R$ ${formatarMoeda(valor)}`, inline: true },
+                { name: 'Jogadores', value: textoJogadores, inline: false }
+            )
+            .setColor('#1f2023');
 
         await message.edit({ embeds: [novoEmbed] }).catch(() => {});
 
@@ -571,10 +578,14 @@ async function handleButtonInteraction(
             global.filasGlobais.set(chaveFila, []);
 
             const embedVazio = new EmbedBuilder()
-                .setTitle(`🔵 ${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setTitle(`${modo} | Fila`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
-                .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
-                .setColor('#0099ff');
+                .addFields(
+                    { name: 'Formato:', value: `${modo} Mobile`, inline: true },
+                    { name: 'Preço:', value: `R$ ${formatarMoeda(valor)}`, inline: true },
+                    { name: 'Jogadores', value: 'Sem jogadores...', inline: false }
+                )
+                .setColor('#1f2023');
 
             await message.edit({ embeds: [embedVazio] }).catch(() => {});
 
