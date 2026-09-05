@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (VISUAL ANTIGO COM EMOJIS ESTÁTICOS)
+// CÓDIGO CORRIGIDO (SEM COROA E COM CÁLCULO DE VALOR CORRIGIDO)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -35,11 +35,9 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// Link do GIF do Samurai (mantido apenas no thumbnail se desejar, ou pode trocar por imagem estática)
 const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2';
 
-// Emojis estáticos tradicionais (Visual antigo limpo)
-const EMOJI_COROA = '👑';
+// Apenas emojis estáticos restantes (Coroa removida)
 const EMOJI_FORMATO = '📋';
 const EMOJI_MOEDAS = '🪙';
 
@@ -106,6 +104,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
         });
 
         const taxaAdm = 0.15;
+        const valorTotalCalculado = Number((valorAposta + taxaAdm).toFixed(2));
         const statusJogadores = jogadoresPartida.map(p => {
             const id = typeof p === 'object' ? p.id : p;
             return `🔴 <@${id}>`;
@@ -114,10 +113,10 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
-            .setTitle(`${EMOJI_COROA} SAMURAI E-SPORTS | Confirmação #${numPartida}`)
+            .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: `${EMOJI_FORMATO} Modo:`, value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorTotalCalculado)} (${formatarMoeda(valorAposta)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '🛡️ Mediador Designado:', value: `<@${admId}>`, inline: false },
                 { name: '👤 Jogadores', value: statusJogadores, inline: false }
             )
@@ -197,7 +196,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
         const taxaAdm = 0.15;
-        const precoTotal = fila.valor + taxaAdm;
+        const precoTotal = Number((fila.valor + taxaAdm).toFixed(2));
 
         let listaTexto = 'Sem jogadores...';
         if (fila.emus && fila.emus.length > 0) {
@@ -205,7 +204,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         }
 
         const embedAtualizada = new EmbedBuilder()
-            .setTitle(`${EMOJI_COROA} ${fila.formato} | SAMURAI E-SPORTS`)
+            .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: fila.formato, inline: false },
@@ -244,7 +243,7 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {});
 
         const embedTicket = new EmbedBuilder()
-            .setTitle(`${EMOJI_COROA} SAMURAI E-SPORTS | Central de Atendimento 🎫`)
+            .setTitle(`SAMURAI E-SPORTS | Central de Atendimento 🎫`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
             .setColor('#0099ff');
@@ -280,7 +279,7 @@ client.on('messageCreate', async (message) => {
 
         await message.delete().catch(() => {});
         const taxaAdm = 0.15;
-        const precoTotal = valor + taxaAdm;
+        const precoTotal = Number((valor + taxaAdm).toFixed(2));
 
         let nomeFormato = `${tipoModo.toUpperCase()} Mobile`;
         const channelName = message.channel.name.toLowerCase();
@@ -291,7 +290,7 @@ client.on('messageCreate', async (message) => {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle(`${EMOJI_COROA} ${nomeFormato} | SAMURAI E-SPORTS`)
+            .setTitle(`${nomeFormato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
@@ -332,10 +331,10 @@ client.on('messageCreate', async (message) => {
         const configuracao = filasMistas[tipo];
         configuracao.valor = isNaN(valorArg) ? 5.00 : valorArg;
         const taxaAdm = 0.15;
-        const precoTotal = configuracao.valor + taxaAdm;
+        const precoTotal = Number((configuracao.valor + taxaAdm).toFixed(2));
 
         const embedPainel = new EmbedBuilder()
-            .setTitle(`${EMOJI_COROA} ${configuracao.formato} | SAMURAI E-SPORTS`)
+            .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: configuracao.formato, inline: false },
@@ -442,7 +441,7 @@ client.on('interactionCreate', async (interaction) => {
             });
 
             const embedTicketAberto = new EmbedBuilder()
-                .setTitle(`${EMOJI_COROA} Atendimento | ${opcaoEscolhida.toUpperCase()}`)
+                .setTitle(`Atendimento | ${opcaoEscolhida.toUpperCase()}`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL)
                 .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.`)
                 .setColor('#0099ff');
