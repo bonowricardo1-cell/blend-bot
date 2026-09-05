@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (LAYOUT LIMPO E PADRONIZADO)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (VISUAL ANTIGO COM EMOJIS ESTÁTICOS)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -35,13 +35,13 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-// Link do GIF do Samurai
+// Link do GIF do Samurai (mantido apenas no thumbnail se desejar, ou pode trocar por imagem estática)
 const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2';
 
-// Emojis personalizados padronizados
-const EMOJI_COROA = '<a:coroa:1545612976877346826>';
-const EMOJI_FORMATO = '<a:formato:1545612907763728424>';
-const EMOJI_MOEDAS = '<a:moedas:1545612654746411048>';
+// Emojis estáticos tradicionais (Visual antigo limpo)
+const EMOJI_COROA = '👑';
+const EMOJI_FORMATO = '📋';
+const EMOJI_MOEDAS = '🪙';
 
 // ==========================================
 // PERSISTÊNCIA DO PIX EM JSON
