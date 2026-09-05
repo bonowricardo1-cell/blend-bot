@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (THUMBNAIL NO CANTO IGUAL ÀS OUTRAS ORGS)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (COM SEUS EMOJIS PERSONALIZADOS)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
@@ -111,10 +111,10 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
-            .setTitle(`<a:coroa:1495438969981108224> SAMURAI E-SPORTS | Confirmação #${numPartida}`)
+            .setTitle(`<a:coroa:1545612976877346826> SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
-                { name: '<a:seta:1495438968765022389> Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: '<a:moedas:149543896733223666> Valor da Aposta:', value: `${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: '<a:formato:1545612907763728424> Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
+                { name: '<a:moedas:1545612654746411048> Valor da Aposta:', value: `${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '🛡️ Mediador Designado:', value: `<@${admId}>`, inline: false },
                 { name: '👤 Jogadores', value: statusJogadores, inline: false }
             )
@@ -201,9 +201,9 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         }
 
         const embedAtualizada = new EmbedBuilder()
-            .setTitle(`<a:coroa:1495438969981108224> ${fila.formato} | SAMURAI E-SPORTS`)
+            .setTitle(`<a:coroa:1545612976877346826> ${fila.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
-            .setDescription(`<a:seta:1495438968765022389> Modo:\n${fila.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
+            .setDescription(`<a:formato:1545612907763728424> Modo:\n${fila.formato}\n\n<a:moedas:1545612654746411048> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\n${listaTexto}`)
             .setColor('#0099ff');
 
         const linhaBotoes = criarBotoesMisto(chaveFila);
@@ -236,7 +236,7 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {});
 
         const embedTicket = new EmbedBuilder()
-            .setTitle('<a:coroa:1495438969981108224> SAMURAI E-SPORTS | Central de Atendimento 🎫')
+            .setTitle('<a:coroa:1545612976877346826> SAMURAI E-SPORTS | Central de Atendimento 🎫')
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
             .setColor('#0099ff');
@@ -275,9 +275,9 @@ client.on('messageCreate', async (message) => {
         const maxJogadores = limitesFila[tipoModo.toLowerCase()] || 2;
 
         const embed = new EmbedBuilder()
-            .setTitle(`<a:coroa:1495438969981108224> ${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
+            .setTitle(`<a:coroa:1545612976877346826> ${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
-            .setDescription(`<a:seta:1495438968765022389> Modo: ${tipoModo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
+            .setDescription(`<a:formato:1545612907763728424> Modo: ${tipoModo}\n<a:moedas:1545612654746411048> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
         const botoes = new ActionRowBuilder();
@@ -314,9 +314,9 @@ client.on('messageCreate', async (message) => {
         const taxaAdm = 0.15;
 
         const embedPainel = new EmbedBuilder()
-            .setTitle(`<a:coroa:1495438969981108224> ${configuracao.formato} | SAMURAI E-SPORTS`)
+            .setTitle(`<a:coroa:1545612976877346826> ${configuracao.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
-            .setDescription(`<a:seta:1495438968765022389> Modo:\n${configuracao.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
+            .setDescription(`<a:formato:1545612907763728424> Modo:\n${configuracao.formato}\n\n<a:moedas:1545612654746411048> Aposta:\n${formatarMoeda(configuracao.valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👤 Jogadores:\nNenhum jogador na fila`)
             .setColor('#0099ff');
 
         const linhaBotoes = criarBotoesMisto(tipo);
@@ -417,7 +417,7 @@ client.on('interactionCreate', async (interaction) => {
             });
 
             const embedTicketAberto = new EmbedBuilder()
-                .setTitle(`<a:coroa:1495438969981108224> Atendimento | ${opcaoEscolhida.toUpperCase()}`)
+                .setTitle(`<a:coroa:1545612976877346826> Atendimento | ${opcaoEscolhida.toUpperCase()}`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL)
                 .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.`)
                 .setColor('#0099ff');
