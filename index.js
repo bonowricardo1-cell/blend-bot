@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO CORRIGIDO (SEM COROA E COM CÁLCULO DE VALOR CORRIGIDO)
+// CÓDIGO CORRIGIDO (VALORES, SOMAS E EMOJIS ATUALIZADOS)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -37,9 +37,9 @@ let pixConfig = {};
 
 const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2';
 
-// Apenas emojis estáticos restantes (Coroa removida)
-const EMOJI_FORMATO = '📋';
-const EMOJI_MOEDAS = '🪙';
+// NOVOS EMOJIS SOLICITADOS
+const EMOJI_FORMATO = '<a:Seta_Direita:123456789012345678>'; // Substitua pelo ID/emoji animado da sua seta se necessário, ou use o padrão abaixo
+const EMOJI_MOEDAS = '<a:moedas:123456789012345678>'; // Substitua pelo ID/emoji animado da pilha de moedas
 
 // ==========================================
 // PERSISTÊNCIA DO PIX EM JSON
@@ -115,8 +115,8 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
-                { name: `${EMOJI_FORMATO} Modo:`, value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorTotalCalculado)} (${formatarMoeda(valorAposta)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `Modo:`, value: `${tipoModo.toUpperCase()}`, inline: false },
+                { name: `Valor da Aposta:`, value: `${formatarMoeda(valorTotalCalculado)} (${formatarMoeda(valorAposta)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '🛡️ Mediador Designado:', value: `<@${admId}>`, inline: false },
                 { name: '👤 Jogadores', value: statusJogadores, inline: false }
             )
@@ -196,7 +196,8 @@ async function atualizarPainelMisto(interaction, chaveFila) {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
         const taxaAdm = 0.15;
-        const precoTotal = Number((fila.valor + taxaAdm).toFixed(2));
+        const valorBase = Number(fila.valor) || 0;
+        const precoTotal = Number((valorBase + taxaAdm).toFixed(2));
 
         let listaTexto = 'Sem jogadores...';
         if (fila.emus && fila.emus.length > 0) {
@@ -207,8 +208,8 @@ async function atualizarPainelMisto(interaction, chaveFila) {
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: fila.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(fila.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `Formato`, value: `${EMOJI_FORMATO} ${fila.formato}`, inline: false },
+                { name: `Preço`, value: `${EMOJI_MOEDAS} ${formatarMoeda(precoTotal)} (${formatarMoeda(valorBase)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '👤 Jogadores', value: listaTexto, inline: false }
             )
             .setColor('#0099ff');
@@ -293,8 +294,8 @@ client.on('messageCreate', async (message) => {
             .setTitle(`${nomeFormato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `Formato`, value: `${EMOJI_FORMATO} ${nomeFormato}`, inline: false },
+                { name: `Preço`, value: `${EMOJI_MOEDAS} ${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
             )
             .setColor('#0099ff');
@@ -337,8 +338,8 @@ client.on('messageCreate', async (message) => {
             .setTitle(`${configuracao.formato} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: configuracao.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(configuracao.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
+                { name: `Formato`, value: `${EMOJI_FORMATO} ${configuracao.formato}`, inline: false },
+                { name: `Preço`, value: `${EMOJI_MOEDAS} ${formatarMoeda(precoTotal)} (${formatarMoeda(configuracao.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
                 { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
             )
             .setColor('#0099ff');
