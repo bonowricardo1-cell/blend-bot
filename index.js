@@ -110,7 +110,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Miniatura no canto superior direito
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setTitle(`SAMURAI E-SPORTS | Confirmação #${numPartida}`)
             .addFields(
                 { name: 'Modo:', value: `${tipoModo.toUpperCase()}`, inline: false },
@@ -276,29 +276,29 @@ client.on('messageCreate', async (message) => {
 
         const embed = new EmbedBuilder()
             .setTitle(`${tipoModo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // Thumbnail no canto superior direito igual às outras orgs
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL)
             .setDescription(`🎮 Modo: ${tipoModo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
             .setColor('#0099ff');
 
-       const botoes = new ActionRowBuilder();
+        const botoes = new ActionRowBuilder();
 
-    if (tipoModo.toLowerCase().includes('1x1')) {
-        botoes.addComponents(
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
-            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-        );
-    } else {
-        botoes.addComponents(
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-        );
-    }
+        if (tipoModo.toLowerCase().includes('1x1')) {
+            botoes.addComponents(
+                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
+                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
+                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+            );
+        } else {
+            botoes.addComponents(
+                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+            );
+        }
 
         await message.channel.send({ embeds: [embed], components: [botoes] });
         return;
-    
+    }
 
     if (message.content.startsWith('!painel')) {
         const argumentos = message.content.split(' ');
