@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO COMPLETO FINAL & INTEGRADO (COM POSTAGEM EM MASSA DE TODAS AS FAIXAS)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (COM CORREÇÃO DA THUMBNAIL DA COROA)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -38,7 +38,7 @@ let pixConfig = {};
 // Lista de todos os valores solicitados em ordem (do maior para o menor ou como preferir)
 const VALORES_PADRAO = [100, 70, 50, 35, 20, 10, 5, 3, 2, 1, 0.75, 0.50, 0.20];
 
-// Link da Coroa Animada para usar na Thumbnail (substituindo o boneco azul)
+// Link da Coroa Animada para usar na Thumbnail
 const THUMBNAIL_COROA = 'https://cdn.discordapp.com/emojis/1545612976877346826.gif';
 
 // Emojis personalizados padronizados
@@ -209,7 +209,7 @@ async function atualizarPainelMisto(interaction, chaveFila) {
 
         const embedAtualizada = new EmbedBuilder()
             .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-            .setThumbnail(THUMBNAIL_COROA)
+            .setThumbnail(THUMBNAIL_COROA) // <--- GARANTINDO A COROA AQUI TAMBÉM!
             .addFields(
                 { name: `${EMOJI_FORMATO} Formato`, value: fila.formato, inline: false },
                 { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(precoTotal)} (${formatarMoeda(fila.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)`, inline: false },
@@ -251,10 +251,8 @@ async function enviarPainelNoCanal(channel, tipoModo, valor, tipoCategoria) {
     const botoes = new ActionRowBuilder();
 
     if (tipoCategoria === 'misto') {
-        // Se for misto, aplica os botões de emu correspondentes
         const chaveFila = `${tipoModo}-misto`;
         const linhaMisto = criarBotoesMisto(chaveFila);
-        // Atualiza a chave correta no objeto da fila se necessário e envia
         await channel.send({ embeds: [embed], components: [linhaMisto] });
         return;
     }
@@ -320,16 +318,10 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // ==========================================
-    // COMANDO DE POSTAGEM EM MASSA (TODOS OS VALORES)
-    // Exemplo: !postar tudo mobile 1x1, !postar tudo emulador 2x2, etc.
-    // Ou simplesmente: !postar tudo mobile (manda todas as faixas para o 1x1, 2x2, 3x3, 4x4)
-    // ==========================================
     if (message.content.startsWith('!postar tudo')) {
         const args = message.content.trim().split(/\s+/);
-        // Ex: !postar tudo mobile
-        const categoriaFila = (args[2] || 'mobile').toLowerCase(); // mobile, emulador, misto
-        const formatoEspecifico = args[3] ? args[3].toLowerCase() : null; // opcional: 1x1, 2x2, etc.
+        const categoriaFila = (args[2] || 'mobile').toLowerCase(); 
+        const formatoEspecifico = args[3] ? args[3].toLowerCase() : null; 
 
         await message.delete().catch(() => {});
         const avisando = await message.channel.send(`⏳ Gerando e enviando **todos os painéis** para **${categoriaFila.toUpperCase()}** com todas as faixas de valores. Aguarde...`);
@@ -339,7 +331,6 @@ client.on('messageCreate', async (message) => {
         for (const fmt of formatos) {
             for (const val of VALORES_PADRAO) {
                 await enviarPainelNoCanal(message.channel, fmt, val, categoriaFila);
-                // Pequeno delay para evitar flood/rate limit do Discord
                 await new Promise(resolve => setTimeout(resolve, 600));
             }
         }
