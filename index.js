@@ -1,5 +1,5 @@
 // ============================================================================
-// CÓDIGO CORRIGIDO (PREÇO PURO SEM SOMA E COROA ORGANIZADA)
+// CÓDIGO COMPLETO FINAL & INTEGRADO (LAYOUT LIMPO E PADRONIZADO)
 // ============================================================================
 
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
@@ -7,6 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Importações dos módulos modularizados
 const { limitesFila, filasMistas } = require('./config/queues');
 const { handleButtonInteraction } = require('./handlers/buttonHandler');
 const { salvarPixNoGitHub } = require('./utils/github');
@@ -18,7 +19,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`Servidor HTTP ouvindo na porta ${PORT}`);
+    console.log(\`Servidor HTTP ouvindo na porta ${PORT}\`);
 });
 
 const client = new Client({
@@ -34,14 +35,18 @@ const confirmadosPartida = new Map();
 let filaMediadores = [];
 let pixConfig = {};
 
-const VALORES_PADRAO = [100, 70, 50, 35, 20, 10, 5, 3, 2, 1, 0.75, 0.50, 0.20];
+// Link do GIF do Samurai
+const GIF\_SAMURAI\_THUMBNAIL = '[https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2](https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif?v=2)';
 
-// Emojis padronizados
-const EMOJI_COROA = '👑';
-const EMOJI_FORMATO = '<a:formato:1545612907763728424>';
-const EMOJI_MOEDAS = '<a:moedas:1545612654746411048>';
+// Emojis personalizados padronizados
+const EMOJI\_COROA = '\<a\:coroa:1545612976877346826>';
+const EMOJI\_FORMATO = '\<a\:formato:1545612907763728424>';
+const EMOJI\_MOEDAS = '\<a\:moedas:1545612654746411048>';
 
-const pixFile = path.join(__dirname, 'config', 'pixConfig.json');
+// ==========================================
+// PERSISTÊNCIA DO PIX EM JSON
+// ==========================================
+const pixFile = path.join(\_\_dirname, 'config', 'pixConfig.json');
 if (fs.existsSync(pixFile)) {
     try {
         pixConfig = JSON.parse(fs.readFileSync(pixFile, 'utf8'));
@@ -62,7 +67,7 @@ function formatarMoeda(valor) {
 }
 
 client.once('ready', () => {
-    console.log(`Bot online como: ${client.user.tag}`);
+    console.log(\`Bot online como: ${client.user.tag}\`);
 });
 
 // ==========================================
@@ -72,7 +77,7 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
     if (filaMediadores.length === 0) {
         try {
             await canalOrigem.send({ 
-                content: `⚠️ A fila de **${tipoModo.toUpperCase()} (${formatarMoeda(valorAposta)})** encheu, mas **não há nenhum mediador na fila de mediadores!** Entrem na fila usando \`!mediador\`.` 
+                content: \`⚠️ A fila de \*\*${tipoModo.toUpperCase()} (${formatarMoeda(valorAposta)})\*\* encheu, mas \*\*não há nenhum mediador na fila de mediadores!\*\* Entrem na fila usando \\\`!mediador\\\`.\` 
             });
         } catch (err) {}
         return;
@@ -83,10 +88,10 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 
     try {
         const categoriaDestino = canalOrigem.parent || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
-        const numPartida = Math.floor(Math.random() * 900000 + 100000);
+        const numPartida = Math.floor(Math.random() \* 900000 + 100000);
 
         const canalPrivado = await guild.channels.create({
-            name: `sala-${tipoModo}`.toLowerCase().replace(/\s/g, '-'),
+            name: \`sala-${tipoModo}\`.toLowerCase().replace(/\s/g, '-'),
             type: ChannelType.GuildText,
             parent: categoriaDestino ? categoriaDestino.id : null,
             permissionOverwrites: [
@@ -100,29 +105,31 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
             ]
         });
 
+        const taxaAdm = 0.15;
         const statusJogadores = jogadoresPartida.map(p => {
             const id = typeof p === 'object' ? p.id : p;
-            return `🔴 <@${id}>`;
+            return \`🔴 <@${id}>\`;
         }).join('\n');
 
         const embedConfirmacao = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setTitle(`👑 SAMURAI E-SPORTS | Confirmação #${numPartida}`)
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+            .setTitle(\`${EMOJI\_COROA} SAMURAI E-SPORTS | Confirmação #${numPartida}\`)
             .addFields(
-                { name: `${EMOJI_FORMATO} Modo:`, value: `${tipoModo.toUpperCase()}`, inline: false },
-                { name: `${EMOJI_MOEDAS} Valor da Aposta:`, value: `${formatarMoeda(valorAposta)} (Taxa ADM: R$ 0,15)`, inline: false },
-                { name: '🛡️ Mediador Designado:', value: `<@${admId}>`, inline: false },
+                { name: \`${EMOJI\_FORMATO} Modo:\`, value: \`${tipoModo.toUpperCase()}\`, inline: false },
+                { name: \`${EMOJI\_MOEDAS} Valor da Aposta:\`, value: \`${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdm)} Taxa ADM)\`, inline: false },
+                { name: '🛡️ Mediador Designado:', value: \`<@${admId}>\`, inline: false },
                 { name: '👤 Jogadores', value: statusJogadores, inline: false }
             )
             .setFooter({ text: 'Ambos os jogadores devem confirmar para liberar o Pix e iniciar a partida.' });
 
         const botoesConfirmacao = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`btn_confirmar_${numPartida}`).setLabel('Confirmar').setStyle(ButtonStyle.Success).setEmoji('✅'),
-            new ButtonBuilder().setCustomId(`btn_cancelar_${numPartida}`).setLabel('Cancelar').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+            new ButtonBuilder().setCustomId(\`btn\_confirmar\_${numPartida}\`).setLabel('Confirmar').setStyle(ButtonStyle.Success).setEmoji('✅'),
+            new ButtonBuilder().setCustomId(\`btn\_cancelar\_${numPartida}\`).setLabel('Cancelar').setStyle(ButtonStyle.Danger).setEmoji('✖️')
         );
 
         await canalPrivado.send({
-            content: `${jogadoresPartida.map(p => typeof p === 'object' ? `<@${p.id}>` : `<@${p}>`).join(' ')} <@${admId}>`,
+            content: \`${jogadoresPartida.map(p => typeof p === 'object' ? \`<@${p.id}>\` : \`<@${p}>\`).join(' ')} <@${admId}>\`,
             embeds: [embedConfirmacao],
             components: [botoesConfirmacao]
         });
@@ -138,21 +145,22 @@ async function puxarProximoMediador(guild, jogadoresPartida, tipoModo, valorApos
 async function atualizarPainelMediadoresPorMensagem(message) {
     let statusTexto = 'Nenhum mediador na fila no momento.';
     if (filaMediadores.length > 0) {
-        statusTexto = filaMediadores.map((id, index) => `${index + 1}º - <@${id}>`).join('\n');
+        statusTexto = filaMediadores.map((id, index) => \`${index + 1}º - <@${id}>\`).join('\n');
     }
 
     const embedAtualizado = new EmbedBuilder()
         .setColor('#FF0000')
-        .setTitle('👑 SAMURAI E-SPORTS | FILA DE MEDIADORES')
-        .setDescription('Clique em **Entrar na Fila** para assumir uma partida ou em **Sair da Fila** caso precise sair.')
+        .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+        .setTitle('⚔️ SAMURAI E-SPORTS | FILA DE MEDIADORES')
+        .setDescription('Clique em \*\*Entrar na Fila\*\* para assumir uma partida ou em \*\*Sair da Fila\*\* caso precise sair.')
         .addFields({ name: 'Status da Fila', value: statusTexto, inline: false })
         .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('btn_entrar_fila').setLabel('Entrar na Fila').setStyle(ButtonStyle.Success).setEmoji('✅'),
-        new ButtonBuilder().setCustomId('btn_sair_fila').setLabel('Sair da Fila').setStyle(ButtonStyle.Danger).setEmoji('❌'),
-        new ButtonBuilder().setCustomId('btn_atualizar_fila').setLabel('Atualizar').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
-        new ButtonBuilder().setCustomId('btn_reset_fila').setLabel('Reset').setStyle(ButtonStyle.Secondary).setEmoji('⚙️')
+        new ButtonBuilder().setCustomId('btn\_entrar\_fila').setLabel('Entrar na Fila').setStyle(ButtonStyle.Success).setEmoji('✅'),
+        new ButtonBuilder().setCustomId('btn\_sair\_fila').setLabel('Sair da Fila').setStyle(ButtonStyle.Danger).setEmoji('❌'),
+        new ButtonBuilder().setCustomId('btn\_atualizar\_fila').setLabel('Atualizar').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
+        new ButtonBuilder().setCustomId('btn\_reset\_fila').setLabel('Reset').setStyle(ButtonStyle.Secondary).setEmoji('⚙️')
     );
 
     try {
@@ -166,21 +174,21 @@ function criarBotoesMisto(chaveFila) {
     const linha = new ActionRowBuilder();
 
     if (chaveFila === '2x2-misto') {
-        linha.addComponents(new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary));
+        linha.addComponents(new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_1\`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary));
     } else if (chaveFila === '3x3-misto') {
         linha.addComponents(
-            new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_1\`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_2\`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary)
         );
     } else if (chaveFila === '4x4-misto') {
         linha.addComponents(
-            new ButtonBuilder().setCustomId(`${chaveFila}_emu_1`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`${chaveFila}_emu_2`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`${chaveFila}_emu_3`).setLabel('3º Emu').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_1\`).setLabel('1º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_2\`).setLabel('2º Emu').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(\`${chaveFila}\_emu\_3\`).setLabel('3º Emu').setStyle(ButtonStyle.Secondary)
         );
     }
 
-    linha.addComponents(new ButtonBuilder().setCustomId(`${chaveFila}_sair`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger).setEmoji('✖️'));
+    linha.addComponents(new ButtonBuilder().setCustomId(\`${chaveFila}\_sair\`).setLabel('Sair da fila').setStyle(ButtonStyle.Danger).setEmoji('✖️'));
     return linha;
 }
 
@@ -188,17 +196,20 @@ async function atualizarPainelMisto(interaction, chaveFila) {
     try {
         const fila = filasMistas[chaveFila];
         const mensagem = interaction.message;
+        const taxaAdm = 0.15;
+        const precoTotal = fila.valor + taxaAdm;
 
         let listaTexto = 'Sem jogadores...';
         if (fila.emus && fila.emus.length > 0) {
-            listaTexto = fila.emus.map((id, index) => `🔴 <@${id}> | ${index + 1}º Emu`).join('\n');
+            listaTexto = fila.emus.map((id, index) => \`🔴 <@${id}> | ${index + 1}º Emu\`).join('\n');
         }
 
         const embedAtualizada = new EmbedBuilder()
-            .setTitle(`👑 ${fila.formato} | SAMURAI E-SPORTS`)
+            .setTitle(\`${EMOJI\_COROA} ${fila.formato} | SAMURAI E-SPORTS\`)
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
             .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: fila.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(fila.valor)} (Taxa ADM: R$ 0,15)`, inline: false },
+                { name: \`${EMOJI\_FORMATO} Formato\`, value: fila.formato, inline: false },
+                { name: \`${EMOJI\_MOEDAS} Preço\`, value: \`${formatarMoeda(precoTotal)} (${formatarMoeda(fila.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)\`, inline: false },
                 { name: '👤 Jogadores', value: listaTexto, inline: false }
             )
             .setColor('#0099ff');
@@ -208,52 +219,6 @@ async function atualizarPainelMisto(interaction, chaveFila) {
     } catch (err) {
         console.error('Erro ao atualizar painel misto:', err);
     }
-}
-
-// ==========================================
-// FUNÇÃO AUXILIAR PARA CRIAR PAINÉIS INDIVIDUAIS
-// ==========================================
-async function enviarPainelNoCanal(channel, tipoModo, valor, tipoCategoria) {
-    let nomeFormato = `${tipoModo.toUpperCase()} Mobile`;
-    if (tipoCategoria === 'emulador') {
-        nomeFormato = `${tipoModo.toUpperCase()} Emulador`;
-    } else if (tipoCategoria === 'misto') {
-        nomeFormato = `${tipoModo.toUpperCase()} Misto`;
-    }
-
-    const embed = new EmbedBuilder()
-        .setTitle(`👑 ${nomeFormato} | SAMURAI E-SPORTS`)
-        .addFields(
-            { name: `${EMOJI_FORMATO} Formato`, value: nomeFormato, inline: false },
-            { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(valor)} (Taxa ADM: R$ 0,15)`, inline: false },
-            { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
-        )
-        .setColor('#0099ff');
-
-    const botoes = new ActionRowBuilder();
-
-    if (tipoCategoria === 'misto') {
-        const chaveFila = `${tipoModo}-misto`;
-        const linhaMisto = criarBotoesMisto(chaveFila);
-        await channel.send({ embeds: [embed], components: [linhaMisto] });
-        return;
-    }
-
-    if (tipoModo.toLowerCase().includes('1x1')) {
-        botoes.addComponents(
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Normal`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Gelo Infinito`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
-            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-        );
-    } else {
-        botoes.addComponents(
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Normal`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId(`entrar|${tipoModo}|${valor}|Full Ump Xm8`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`sair|${tipoModo}|${valor}|Sair`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
-        );
-    }
-
-    await channel.send({ embeds: [embed], components: [botoes] });
 }
 
 // ==========================================
@@ -279,18 +244,19 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {});
 
         const embedTicket = new EmbedBuilder()
-            .setTitle(`👑 SAMURAI E-SPORTS | Central de Atendimento 🎫`)
-            .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 **Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.**')
+            .setTitle(\`${EMOJI\_COROA} SAMURAI E-SPORTS | Central de Atendimento 🎫\`)
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+            .setDescription('📂 Seja bem-vindo(a) ao sistema de atendimento! Aqui você pode abrir um ticket de forma rápida e organizada.\n\n👇 \*\*Selecione uma das opções no menu abaixo para iniciar seu atendimento e aguarde que nossa equipe irá te responder o mais breve possível.\*\*')
             .setColor('#0099ff');
 
         const menuRow = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-                .setCustomId('criar_ticket')
+                .setCustomId('criar\_ticket')
                 .setPlaceholder('Selecione o ticket que deseja abrir')
                 .addOptions(
                     new StringSelectMenuOptionBuilder().setLabel('Suporte').setDescription('Auxílio, ajudas, dúvidas e propostas...').setValue('suporte').setEmoji('💬'),
                     new StringSelectMenuOptionBuilder().setLabel('Reembolso').setDescription('Adm pagou errado, sumiu e precisa de reembolso.').setValue('reembolso').setEmoji('💳'),
-                    new StringSelectMenuOptionBuilder().setLabel('Seja Mediador').setDescription('Abra ticket aqui para fazer parte da equipe.').setValue('seja_mediador').setEmoji('🛡️'),
+                    new StringSelectMenuOptionBuilder().setLabel('Seja Mediador').setDescription('Abra ticket aqui para fazer parte da equipe.').setValue('seja\_mediador').setEmoji('🛡️'),
                     new StringSelectMenuOptionBuilder().setLabel('Divulgação').setDescription('Caso queira uma divulgação.').setValue('divulgacao').setEmoji('📢')
                 )
         );
@@ -299,54 +265,59 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    if (message.content.startsWith('!postar tudo')) {
-        const args = message.content.trim().split(/\s+/);
-        const categoriaFila = (args[2] || 'mobile').toLowerCase(); 
-        const formatoEspecifico = args[3] ? args[3].toLowerCase() : null; 
-
-        if (categoriaFila !== 'mobile' && categoriaFila !== 'emulador') {
-            return message.reply('❌ Categoria inválida! Use: `!postar tudo mobile` ou `!postar tudo emulador`.');
-        }
-
-        await message.delete().catch(() => {});
-        const avisando = await message.channel.send(`⏳ Gerando e enviando **todos os painéis** para **${categoriaFila.toUpperCase()}** com todas as faixas de valores. Aguarde...`);
-
-        const formatos = formatoEspecifico ? [formatoEspecifico] : ['1x1', '2x2', '3x3', '4x4'];
-
-        for (const fmt of formatos) {
-            for (const val of VALORES_PADRAO) {
-                await enviarPainelNoCanal(message.channel, fmt, val, categoriaFila);
-                await new Promise(resolve => setTimeout(resolve, 600));
-            }
-        }
-
-        await avisando.delete().catch(() => {});
-        return;
-    }
-
     if (message.content.startsWith('!postar')) {
         const args = message.content.trim().split(/\s+/);
         if (args.length < 3) {
-            return message.reply('Use o formato correto com espaço: `!postar 1x1 2.00` ou use em massa com `!postar tudo mobile`');
+            return message.reply('Use o formato correto com espaço: \`!postar 1x1 2.00\`');
         }
 
         const tipoModo = args[1];
         const valor = parseFloat(args[2].replace(',', '.'));
 
         if (isNaN(valor)) {
-            return message.reply('❌ Por favor, insira um valor numérico válido, ex: `!postar 1x1 2.00`');
+            return message.reply('❌ Por favor, insira um valor numérico válido, ex: \`!postar 1x1 2.00\`');
         }
 
         await message.delete().catch(() => {});
-        let tipoCategoria = 'mobile';
+        const taxaAdm = 0.15;
+        const precoTotal = valor + taxaAdm;
+
+        // Identifica automaticamente se é Mobile ou Emulador pelo canal ou argumento
+        let nomeFormato = \`${tipoModo.toUpperCase()} Mobile\`;
         const channelName = message.channel.name.toLowerCase();
         if (channelName.includes('emu')) {
-            tipoCategoria = 'emulador';
+            nomeFormato = \`${tipoModo.toUpperCase()} Emulador\`;
         } else if (channelName.includes('misto')) {
-            tipoCategoria = 'misto';
+            nomeFormato = \`${tipoModo.toUpperCase()} Misto\`;
         }
 
-        await enviarPainelNoCanal(message.channel, tipoModo, valor, tipoCategoria);
+        const embed = new EmbedBuilder()
+            .setTitle(\`${EMOJI\_COROA} ${nomeFormato} | SAMURAI E-SPORTS\`)
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+            .addFields(
+                { name: \`${EMOJI\_FORMATO} Formato\`, value: nomeFormato, inline: false },
+                { name: \`${EMOJI\_MOEDAS} Preço\`, value: \`${formatarMoeda(precoTotal)} (${formatarMoeda(valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)\`, inline: false },
+                { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
+            )
+            .setColor('#0099ff');
+
+        const botoes = new ActionRowBuilder();
+
+        if (tipoModo.toLowerCase().includes('1x1')) {
+            botoes.addComponents(
+                new ButtonBuilder().setCustomId(\`entrar|${tipoModo}|${valor}|Gelo Normal\`).setLabel('Gelo Normal').setStyle(ButtonStyle.Success).setEmoji('🧊'),
+                new ButtonBuilder().setCustomId(\`entrar|${tipoModo}|${valor}|Gelo Infinito\`).setLabel('Gelo Infinito').setStyle(ButtonStyle.Secondary).setEmoji('🧊'),
+                new ButtonBuilder().setCustomId(\`sair|${tipoModo}|${valor}|Sair\`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+            );
+        } else {
+            botoes.addComponents(
+                new ButtonBuilder().setCustomId(\`entrar|${tipoModo}|${valor}|Normal\`).setLabel('NORMAL').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId(\`entrar|${tipoModo}|${valor}|Full Ump Xm8\`).setLabel('FULL UMP XM8').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(\`sair|${tipoModo}|${valor}|Sair\`).setLabel('Sair').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+            );
+        }
+
+        await message.channel.send({ embeds: [embed], components: [botoes] });
         return;
     }
 
@@ -356,17 +327,20 @@ client.on('messageCreate', async (message) => {
         const valorArg = parseFloat((argumentos[2] || '5.00').replace(',', '.'));
 
         if (!filasMistas[tipo]) {
-            return message.reply('❌ Tipo inválido. Use: `!painel 2x2-misto 5.00`, `!painel 3x3-misto 5.00` ou `!painel 4x4-misto 5.00`.');
+            return message.reply('❌ Tipo inválido. Use: \`!painel 2x2-misto 5.00\`, \`!painel 3x3-misto 5.00\` ou \`!painel 4x4-misto 5.00\`.');
         }
 
         const configuracao = filasMistas[tipo];
         configuracao.valor = isNaN(valorArg) ? 5.00 : valorArg;
+        const taxaAdm = 0.15;
+        const precoTotal = configuracao.valor + taxaAdm;
 
         const embedPainel = new EmbedBuilder()
-            .setTitle(`👑 ${configuracao.formato} | SAMURAI E-SPORTS`)
+            .setTitle(\`${EMOJI\_COROA} ${configuracao.formato} | SAMURAI E-SPORTS\`)
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
             .addFields(
-                { name: `${EMOJI_FORMATO} Formato`, value: configuracao.formato, inline: false },
-                { name: `${EMOJI_MOEDAS} Preço`, value: `${formatarMoeda(configuracao.valor)} (Taxa ADM: R$ 0,15)`, inline: false },
+                { name: \`${EMOJI\_FORMATO} Formato\`, value: configuracao.formato, inline: false },
+                { name: \`${EMOJI\_MOEDAS} Preço\`, value: \`${formatarMoeda(precoTotal)} (${formatarMoeda(configuracao.valor)} + ${formatarMoeda(taxaAdm)} Taxa ADM)\`, inline: false },
                 { name: '👤 Jogadores', value: 'Sem jogadores...', inline: false }
             )
             .setColor('#0099ff');
@@ -380,16 +354,17 @@ client.on('messageCreate', async (message) => {
 
     if (message.content.toLowerCase() === '!mediador') {
         const embed = new EmbedBuilder()
-            .setTitle('👑 SAMURAI E-SPORTS | FILA DE MEDIADORES')
-            .setDescription('Clique em **Entrar na Fila** para assumir uma partida ou em **Sair da Fila** caso precise sair.')
+            .setTitle('⚔️ SAMURAI E-SPORTS | FILA DE MEDIADORES')
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+            .setDescription('Clique em \*\*Entrar na Fila\*\* para assumir uma partida ou em \*\*Sair da Fila\*\* caso precise sair.')
             .addFields({ name: 'Status da Fila', value: 'Nenhum mediador na fila no momento.', inline: false })
             .setColor('#FF0000');
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_entrar_fila').setLabel('Entrar na Fila').setStyle(ButtonStyle.Success).setEmoji('✅'),
-            new ButtonBuilder().setCustomId('btn_sair_fila').setLabel('Sair da Fila').setStyle(ButtonStyle.Danger).setEmoji('❌'),
-            new ButtonBuilder().setCustomId('btn_atualizar_fila').setLabel('Atualizar').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
-            new ButtonBuilder().setCustomId('btn_reset_fila').setLabel('Reset').setStyle(ButtonStyle.Secondary).setEmoji('⚙️')
+            new ButtonBuilder().setCustomId('btn\_entrar\_fila').setLabel('Entrar na Fila').setStyle(ButtonStyle.Success).setEmoji('✅'),
+            new ButtonBuilder().setCustomId('btn\_sair\_fila').setLabel('Sair da Fila').setStyle(ButtonStyle.Danger).setEmoji('❌'),
+            new ButtonBuilder().setCustomId('btn\_atualizar\_fila').setLabel('Atualizar').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
+            new ButtonBuilder().setCustomId('btn\_reset\_fila').setLabel('Reset').setStyle(ButtonStyle.Secondary).setEmoji('⚙️')
         );
 
         await message.channel.send({ embeds: [embed], components: [row] });
@@ -399,14 +374,15 @@ client.on('messageCreate', async (message) => {
 
     if (message.content.toLowerCase() === '!pix') {
         const embed = new EmbedBuilder()
-            .setTitle('👑 Configuração de Pix & Mediação')
-            .setDescription('Clique no botão abaixo para configurar sua **Chave Pix**, **Nome do Titular** e **Mensagem de Pré-Pagamento**.')
+            .setTitle('⚡ Configuração de Pix & Mediação')
+            .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+            .setDescription('Clique no botão abaixo para configurar sua \*\*Chave Pix\*\*, \*\*Nome do Titular\*\* e \*\*Mensagem de Pré-Pagamento\*\*.')
             .setColor('#FF0000');
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_config_pix').setLabel('Configurar Pix').setStyle(ButtonStyle.Primary).setEmoji('💳'),
-            new ButtonBuilder().setCustomId('btn_ver_qrcode').setLabel('Ver QR-Code').setStyle(ButtonStyle.Secondary).setEmoji('📷'),
-            new ButtonBuilder().setCustomId('btn_testar_pix').setLabel('Testar Pix').setStyle(ButtonStyle.Success).setEmoji('🧪')
+            new ButtonBuilder().setCustomId('btn\_config\_pix').setLabel('Configurar Pix').setStyle(ButtonStyle.Primary).setEmoji('💳'),
+            new ButtonBuilder().setCustomId('btn\_ver\_qrcode').setLabel('Ver QR-Code').setStyle(ButtonStyle.Secondary).setEmoji('📷'),
+            new ButtonBuilder().setCustomId('btn\_testar\_pix').setLabel('Testar Pix').setStyle(ButtonStyle.Success).setEmoji('🧪')
         );
 
         await message.channel.send({ embeds: [embed], components: [row] });
@@ -419,22 +395,22 @@ client.on('messageCreate', async (message) => {
 // INTERAÇÕES (TICKETS E BOTÕES)
 // ==========================================
 client.on('interactionCreate', async (interaction) => {
-    if (interaction.isModalSubmit() && interaction.customId === 'modal_config_pix') {
-        const chave = interaction.fields.getTextInputValue('input_chave_pix');
-        const nome = interaction.fields.getTextInputValue('input_nome_pix');
-        const mensagem = interaction.fields.getTextInputValue('input_msg_pix');
+    if (interaction.isModalSubmit() && interaction.customId === 'modal\_config\_pix') {
+        const chave = interaction.fields.getTextInputValue('input\_chave\_pix');
+        const nome = interaction.fields.getTextInputValue('input\_nome\_pix');
+        const mensagem = interaction.fields.getTextInputValue('input\_msg\_pix');
 
         pixConfig[interaction.user.id] = { chave, nome, mensagem };
         await salvarPix();
 
         await interaction.reply({
-            content: `✅ **Configuração salva com sucesso!**\n\n🔑 **Chave:** \`${chave}\`\n👤 **Nome:** ${nome}\n📝 **Mensagem:** ${mensagem || 'Nenhuma'}`,
+            content: \`✅ \*\*Configuração salva com sucesso!\*\*\n\n🔑 \*\*Chave:\*\* \\\`${chave}\\\`\n👤 \*\*Nome:\*\* ${nome}\n📝 \*\*Mensagem:\*\* ${mensagem || 'Nenhuma'}\`,
             ephemeral: true
         });
         return;
     }
 
-    if (interaction.isStringSelectMenu() && interaction.customId === 'criar_ticket') {
+    if (interaction.isStringSelectMenu() && interaction.customId === 'criar\_ticket') {
         if (!interaction.deferred && !interaction.replied) {
             await interaction.deferReply({ ephemeral: true }).catch(() => {});
         }
@@ -447,7 +423,7 @@ client.on('interactionCreate', async (interaction) => {
             const categoriaDestino = interaction.channel.parent || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory);
 
             const canalPrivado = await guild.channels.create({
-                name: `ticket-${user.username}`.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                name: \`ticket-${user.username}\`.toLowerCase().replace(/[^a-z0-9]/g, '-'),
                 type: ChannelType.GuildText,
                 parent: categoriaDestino ? categoriaDestino.id : null,
                 permissionOverwrites: [
@@ -467,24 +443,25 @@ client.on('interactionCreate', async (interaction) => {
             });
 
             const embedTicketAberto = new EmbedBuilder()
-                .setTitle(`👑 Atendimento | ${opcaoEscolhida.toUpperCase()}`)
-                .setDescription(`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.`)
+                .setTitle(\`${EMOJI\_COROA} Atendimento | ${opcaoEscolhida.toUpperCase()}\`)
+                .setThumbnail(GIF\_SAMURAI\_THUMBNAIL)
+                .setDescription(\`Olá <@${user.id}>, seu canal de atendimento foi aberto com sucesso!\nA equipe de suporte e a administração já foram notificadas.\n\nClique no botão abaixo quando quiser encerrar e fechar este atendimento.\`)
                 .setColor('#0099ff');
 
             const botaoFecharTicket = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('fechar_ticket').setLabel('Fechar Ticket').setStyle(ButtonStyle.Danger).setEmoji('🔒')
+                new ButtonBuilder().setCustomId('fechar\_ticket').setLabel('Fechar Ticket').setStyle(ButtonStyle.Danger).setEmoji('🔒')
             );
 
             await canalPrivado.send({
-                content: `<@${user.id}>`,
+                content: \`<@${user.id}>\`,
                 embeds: [embedTicketAberto],
                 components: [botaoFecharTicket]
             });
 
-            await interaction.editReply({ content: `✅ Seu ticket foi criado com sucesso em ${canalPrivado}!` });
+            await interaction.editReply({ content: \`✅ Seu ticket foi criado com sucesso em ${canalPrivado}!\` });
         } catch (error) {
             console.error("Erro ao criar ticket:", error);
-            await interaction.editReply({ content: `❌ Ocorreu um erro ao criar o canal do ticket.` });
+            await interaction.editReply({ content: \`❌ Ocorreu um erro ao criar o canal do ticket.\` });
         }
         return;
     }
@@ -503,4 +480,4 @@ client.on('interactionCreate', async (interaction) => {
     );
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD\_TOKEN);
