@@ -1,6 +1,6 @@
 const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-// Coloque o link direto do seu GIF do samurai aqui (ou importe do seu arquivo de configuração)
+// Coloque le link direto do seu GIF do samurai aqui (ou importe do seu arquivo de configuração)
 const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/PrBgStRC/Samurai-slashing-text-animation-202609022217-ezgif-com-optimize.gif'; 
 
 async function handleButtonInteraction(
@@ -15,10 +15,41 @@ async function handleButtonInteraction(
     formatarMoeda, 
     salvarPix
 ) {
-    const { customId, user, message, guild } = interaction;
+    const { customId, user, message, guild, member } = interaction;
     if (!customId) return;
 
     const taxaAdmFixa = 0.15;
+
+    // Função auxiliar para verificar se o usuário é Administrador ou o Mediador designado da partida atual
+    async function verificarPermissaoMediadorOuAdmin() {
+        if (!member) return false;
+        
+        // Verifica se é Administrador ou Gerencia o Servidor
+        if (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+            return true;
+        }
+
+        // Se houver uma mensagem associada, tenta extrair o ID do mediador designado no embed
+        if (message && message.embeds && message.embeds[0]) {
+            const embed = message.embeds[0];
+            
+            // Procura no campo de mediador
+            const campoMediador = embed.fields.find(f => f.name.toLowerCase().includes('mediador'));
+            if (campoMediador) {
+                const match = campoMediador.value.match(/<@!?(\d+)>/);
+                if (match && match[1] === user.id) {
+                    return true;
+                }
+            }
+        }
+
+        // Se estiver na fila global de mediadores ativos no momento
+        if (filaMediadores && filaMediadores.includes(user.id)) {
+            return true;
+        }
+
+        return false;
+    }
 
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
@@ -254,6 +285,11 @@ async function handleButtonInteraction(
     }
 
     if (customId === 'btn_liberar_pagamento') {
+        const temPermissao = await verificarPermissaoMediadorOuAdmin();
+        if (!temPermissao) {
+            return interaction.followUp({ content: '❌ **Acesso Negado:** Apenas o mediador responsável por esta partida ou administradores podem liberar o pagamento.', ephemeral: true }).catch(() => {});
+        }
+
         const mediadorId = (filaMediadores && filaMediadores.length > 0) ? filaMediadores[0] : user.id;
         const configPix = pixConfig[mediadorId] || Object.values(pixConfig)[0] || { chave: 'Não configurada', nome: 'SAMURAI E-SPORTS' };
         
@@ -287,6 +323,11 @@ async function handleButtonInteraction(
     }
 
     if (customId === 'btn_fornecer_sala') {
+        const temPermissao = await verificarPermissaoMediadorOuAdmin();
+        if (!temPermissao) {
+            return interaction.followUp({ content: '❌ **Acesso Negado:** Apenas o mediador responsável ou administradores podem fornecer a sala.', ephemeral: true }).catch(() => {});
+        }
+
         try {
             let valorApostaBase = 0;
             if (message && message.embeds && message.embeds[0]) {
@@ -320,6 +361,11 @@ async function handleButtonInteraction(
     }
 
     if (customId === 'btn_cancelar_partida_privada' || customId.includes('_cancelar')) {
+        const temPermissao = await verificarPermissaoMediadorOuAdmin();
+        if (!temPermissao) {
+            return interaction.followUp({ content: '❌ **Acesso Negado:** Apenas o mediador responsável ou administradores podem cancelar esta partida.', ephemeral: true }).catch(() => {});
+        }
+
         await interaction.channel.send('⚠️ Partida cancelada. Fechando canal em instantes...').catch(() => {});
         setTimeout(async () => {
             await interaction.channel.delete().catch(() => {});
@@ -328,6 +374,11 @@ async function handleButtonInteraction(
     }
 
     if (customId === 'btn_painel_mediador') {
+        const temPermissao = await verificarPermissaoMediadorOuAdmin();
+        if (!temPermissao) {
+            return interaction.followUp({ content: '❌ **Acesso Negado:** Você não tem permissão para abrir o painel do mediador.', ephemeral: true }).catch(() => {});
+        }
+
         const rowMediador = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('btn_cancelar_fila')
@@ -343,6 +394,24 @@ async function handleButtonInteraction(
             content: `⚙️ **Painel do Mediador**\n> Selecione uma ação abaixo.`,
             components: [rowMediador]
         }).catch(() => {});
+        return;
+    }
+
+    // Trava para os botões de ação do painel de mediador (Cancelar Fila / Finalizar Fila)
+    if (customId === 'btn_cancelar_fila' || customId === 'btn_finalizar_fila') {
+        const temPermissao = await verificarPermissaoMediadorOuAdmin();
+        if (!temPermissao) {
+            return interaction.followUp({ content: '❌ **Acesso Negado:** Apenas mediadores ou administradores podem usar estes controles.', ephemeral: true }).catch(() => {});
+        }
+        
+        if (customId === 'btn_cancelar_fila') {
+            await interaction.channel.send('⚠️ Fila cancelada pelo mediador. Fechando canal...').catch(() => {});
+            setTimeout(async () => {
+                await interaction.channel.delete().catch(() => {});
+            }, 2000);
+        } else if (customId === 'btn_finalizar_fila') {
+            await interaction.channel.send('✅ Partida finalizada com sucesso!').catch(() => {});
+        }
         return;
     }
 
