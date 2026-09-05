@@ -19,56 +19,37 @@ async function handleButtonInteraction(
 
     const taxaAdmFixa = 0.15;
 
-    // Função auxiliar para verificar se é Dono ou Vice-Dono (baseado nos nomes dos cargos que aparecem no topo do servidor)
     function verificarSeEhDonoOuVice() {
         if (!member) return false;
-        
-        // Se for o dono supremo do servidor
         if (guild.ownerId === user.id) return true;
-
-        // Verifica se o membro possui os cargos de Dono ou Vice-Dono pelo nome
         const cargosPermitidos = ['dono de tudo', 'vice dono', 'dono', 'vice-dono'];
-        const temCargoAlto = member.roles.cache.some(role => 
+        return member.roles.cache.some(role => 
             cargosPermitidos.some(nome => role.name.toLowerCase().includes(nome))
         );
-
-        return temCargoAlto;
     }
 
-    // Verifica se é Admin ou o Mediador da partida
     async function verificarPermissaoMediadorOuAdmin() {
         if (!member) return false;
-        
         if (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild)) {
             return true;
         }
-
         if (message && message.embeds && message.embeds[0]) {
             const embed = message.embeds[0];
             const campoMediador = embed.fields.find(f => f.name.toLowerCase().includes('mediador'));
             if (campoMediador) {
                 const match = campoMediador.value.match(/<@!?(\d+)>/);
-                if (match && match[1] === user.id) {
-                    return true;
-                }
+                if (match && match[1] === user.id) return true;
             }
         }
-
-        if (filaMediadores && filaMediadores.includes(user.id)) {
-            return true;
-        }
-
+        if (filaMediadores && filaMediadores.includes(user.id)) return true;
         return false;
     }
 
-    // Verifica se o usuário é participante da sala
     async function verificarSeEhParticipante() {
         if (message && message.embeds && message.embeds[0]) {
             const embed = message.embeds[0];
             const campoJogadores = embed.fields.find(f => f.name.toLowerCase().includes('jogadores'));
-            if (campoJogadores && campoJogadores.value.includes(user.id)) {
-                return true;
-            }
+            if (campoJogadores && campoJogadores.value.includes(user.id)) return true;
         }
         return false;
     }
@@ -629,7 +610,6 @@ async function handleButtonInteraction(
                 filaMediadores.splice(idx, 1);
             }
         } else if (customId === 'btn_reset_fila') {
-            // TRAVA DE SEGURANÇA: Apenas Dono ou Vice-Dono podem resetar a fila de mediadores!
             if (!verificarSeEhDonoOuVice()) {
                 return interaction.followUp({ 
                     content: '❌ **Acesso Negado:** Você não possui o cargo adequado (Dono ou Vice-Dono) para resetar a fila de mediadores!', 
