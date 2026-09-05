@@ -1,6 +1,6 @@
 const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif; 
+const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/mrQXnhwx/ezgif-26aec8508db04754.gif'; 
 
 async function handleButtonInteraction(
     interaction, 
