@@ -1,6 +1,5 @@
 const { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-// Coloque le link direto do seu GIF do samurai aqui (ou importe do seu arquivo de configuração)
 const GIF_SAMURAI_THUMBNAIL = 'https://i.postimg.cc/PrBgStRC/Samurai-slashing-text-animation-202609022217-ezgif-com-optimize.gif'; 
 
 async function handleButtonInteraction(
@@ -20,20 +19,16 @@ async function handleButtonInteraction(
 
     const taxaAdmFixa = 0.15;
 
-    // Função auxiliar para verificar se o usuário é Administrador ou o Mediador designado da partida atual
+    // Verifica se é Admin ou o Mediador da partida
     async function verificarPermissaoMediadorOuAdmin() {
         if (!member) return false;
         
-        // Verifica se é Administrador ou Gerencia o Servidor
         if (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild)) {
             return true;
         }
 
-        // Se houver uma mensagem associada, tenta extrair o ID do mediador designado no embed
         if (message && message.embeds && message.embeds[0]) {
             const embed = message.embeds[0];
-            
-            // Procura no campo de mediador
             const campoMediador = embed.fields.find(f => f.name.toLowerCase().includes('mediador'));
             if (campoMediador) {
                 const match = campoMediador.value.match(/<@!?(\d+)>/);
@@ -43,11 +38,22 @@ async function handleButtonInteraction(
             }
         }
 
-        // Se estiver na fila global de mediadores ativos no momento
         if (filaMediadores && filaMediadores.includes(user.id)) {
             return true;
         }
 
+        return false;
+    }
+
+    // Verifica se o usuário é participante da sala
+    async function verificarSeEhParticipante() {
+        if (message && message.embeds && message.embeds[0]) {
+            const embed = message.embeds[0];
+            const campoJogadores = embed.fields.find(f => f.name.toLowerCase().includes('jogadores'));
+            if (campoJogadores && campoJogadores.value.includes(user.id)) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -101,9 +107,6 @@ async function handleButtonInteraction(
         await interaction.deferUpdate().catch(() => {});
     }
 
-    // =========================================================================
-    // FUNÇÃO PARA ENVIAR O PAINEL PROFISSIONAL DA PARTIDA + QR CODE COM LOGO
-    // =========================================================================
     async function enviarPainelProfissionalPartida(canal, tipoPartida, modoTexto, statusJogadoresTexto, valorApostaBase, selecaoTexto) {
         try {
             const mensagens = await canal.messages.fetch({ limit: 20 });
@@ -117,7 +120,7 @@ async function handleButtonInteraction(
 
         const embedOficial = new EmbedBuilder()
             .setTitle(`Fila #1`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .setColor('#1f2023')
             .addFields(
                 { name: 'Formato:', value: 'Freefire', inline: true },
@@ -153,13 +156,13 @@ async function handleButtonInteraction(
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado')
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .addFields(
                 { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
                 { name: 'Valor Total:', value: `**${formatarMoeda(valorTotalPartida)}**`, inline: false }
             )
-            .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.\n*Chave Pix do Mediador carregada com sucesso!*`)
+            .setDescription(`Escaneie o QR Code abaixo com o aplicativo do seu banco para realizar o pagamento.`)
             .setImage(qrCodeUrl);
 
         await canal.send({ embeds: [embedPix] });
@@ -195,7 +198,7 @@ async function handleButtonInteraction(
             const embedConfirmacao = new EmbedBuilder()
                 .setColor('#2b2d31')
                 .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
-                .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+                .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                 .setDescription(`🎮 Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n💰 Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
                 .setFooter({ text: 'Ambos os jogadores devem clicar em Confirmar para iniciar.' });
@@ -309,7 +312,7 @@ async function handleButtonInteraction(
         const embedPix = new EmbedBuilder()
             .setColor('#1f2023')
             .setTitle('💰 Pagamento Liberado (Reenviado)')
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .addFields(
                 { name: 'Chave Pix:', value: `\`${configPix.chave}\``, inline: false },
                 { name: 'Recebedor:', value: `\`${configPix.nome}\``, inline: false },
@@ -360,10 +363,40 @@ async function handleButtonInteraction(
         return;
     }
 
+    // =========================================================================
+    // REGRA INTELIGENTE DO BOTÃO DE CANCELAR:
+    // - Se a partida AINDA ESTÁ NA CONFIRMAÇÃO (tem bolinhas vermelhas 🔴), 
+    //   qualquer jogador participante pode cancelar para renegociar/fechar.
+    // - Se JÁ PASSOU da confirmação (virou painel oficial), só mediador ou ADM.
+    // =========================================================================
     if (customId === 'btn_cancelar_partida_privada' || customId.includes('_cancelar')) {
-        const temPermissao = await verificarPermissaoMediadorOuAdmin();
-        if (!temPermissao) {
-            return interaction.followUp({ content: '❌ **Acesso Negado:** Apenas o mediador responsável ou administradores podem cancelar esta partida.', ephemeral: true }).catch(() => {});
+        const ehParticipante = await verificarSeEhParticipante();
+        const temPermissaoAdminOuMediador = await verificarPermissaoMediadorOuAdmin();
+
+        // Vê se ainda tem alguma bolinha vermelha (pendente de confirmação) na mensagem
+        let temPendenciaVermelha = false;
+        if (message && message.embeds && message.embeds[0]) {
+            const embed = message.embeds[0];
+            const campoJogadores = embed.fields.find(f => f.name.toLowerCase().includes('jogadores'));
+            if (campoJogadores && campoJogadores.value.includes('🔴')) {
+                temPendenciaVermelha = true;
+            }
+        }
+
+        // Se não tem pendência vermelha (partida já confirmada/andamento), só ADM/Mediador pode cancelar
+        if (!temPendenciaVermelha && !temPermissaoAdminOuMediador) {
+            return interaction.followUp({ 
+                content: '❌ **Acesso Negado:** A partida já foi confirmada. Apenas o mediador responsável ou administradores podem cancelar esta partida.', 
+                ephemeral: true 
+            }).catch(() => {});
+        }
+
+        // Se ainda está pendente (vermelho), os próprios jogadores participantes podem cancelar
+        if (temPendenciaVermelha && !ehParticipante && !temPermissaoAdminOuMediador) {
+            return interaction.followUp({ 
+                content: '❌ **Acesso Negado:** Apenas os jogadores participantes desta partida podem cancelá-la.', 
+                ephemeral: true 
+            }).catch(() => {});
         }
 
         await interaction.channel.send('⚠️ Partida cancelada. Fechando canal em instantes...').catch(() => {});
@@ -397,7 +430,6 @@ async function handleButtonInteraction(
         return;
     }
 
-    // Trava para os botões de ação do painel de mediador (Cancelar Fila / Finalizar Fila)
     if (customId === 'btn_cancelar_fila' || customId === 'btn_finalizar_fila') {
         const temPermissao = await verificarPermissaoMediadorOuAdmin();
         if (!temPermissao) {
@@ -464,7 +496,7 @@ async function handleButtonInteraction(
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
                     .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
-                    .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+                    .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                     .setDescription(`🎮 Modo:\n${fila.formato}\n\n💰 Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
 
@@ -540,7 +572,7 @@ async function handleButtonInteraction(
 
         const novoEmbed = new EmbedBuilder()
             .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
@@ -552,7 +584,7 @@ async function handleButtonInteraction(
 
             const embedVazio = new EmbedBuilder()
                 .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-                .setThumbnail(GIF_SAMURAI_THUMBNAIL) // <-- Ajustado para o GIF
+                .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                 .setDescription(`🎮 Modo: ${modo}\n💰 Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
                 .setColor('#0099ff');
 
