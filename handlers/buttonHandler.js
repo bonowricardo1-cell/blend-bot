@@ -54,6 +54,7 @@ async function handleButtonInteraction(
         return false;
     }
 
+    // Tratamento exclusivo para submissão de modal (não deve sofrer deferUpdate antes)
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -68,6 +69,7 @@ async function handleButtonInteraction(
         });
     }
 
+    // Abertura de Modal também não deve sofrer deferUpdate
     if (customId === 'btn_config_pix') {
         const modal = new ModalBuilder()
             .setCustomId('modal_config_pix')
@@ -100,6 +102,7 @@ async function handleButtonInteraction(
         return interaction.showModal(modal);
     }
 
+    // Adiamento seguro para evitar o erro "Unknown Interaction" nos botões comuns
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate().catch(() => {});
     }
