@@ -299,7 +299,7 @@ client.on('messageCreate', async (message) => {
 
         await message.channel.send({ embeds: [embed], components: [botoes] });
         return;
-    }
+    
 
     if (message.content.startsWith('!painel')) {
         const argumentos = message.content.split(' ');
