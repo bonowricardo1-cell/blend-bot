@@ -54,7 +54,6 @@ async function handleButtonInteraction(
         return false;
     }
 
-    // Tratamento exclusivo para submissão de modal (não deve sofrer deferUpdate antes)
     if (interaction.isModalSubmit() && customId === 'modal_config_pix') {
         const chave = interaction.fields.getTextInputValue('input_chave_pix');
         const nome = interaction.fields.getTextInputValue('input_nome_pix');
@@ -69,7 +68,6 @@ async function handleButtonInteraction(
         });
     }
 
-    // Abertura de Modal também não deve sofrer deferUpdate
     if (customId === 'btn_config_pix') {
         const modal = new ModalBuilder()
             .setCustomId('modal_config_pix')
@@ -102,7 +100,6 @@ async function handleButtonInteraction(
         return interaction.showModal(modal);
     }
 
-    // Adiamento seguro para evitar o erro "Unknown Interaction" nos botões comuns
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate().catch(() => {});
     }
@@ -486,7 +483,7 @@ async function handleButtonInteraction(
 
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
-                    .setTitle(`${fila.formato} | SAMURAI E-SPORTS`)
+                    .setTitle(`${fila.formato} | SAMURAI E-SPORTS`) // Sem coroa, sem emoji azul
                     .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                     .setDescription(`<a:seta:1495438968765022389> Modo:\n${fila.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
@@ -562,8 +559,8 @@ async function handleButtonInteraction(
         }
 
         const novoEmbed = new EmbedBuilder()
-            .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
+            .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`) // Título limpo sem coroa e sem emojis extras
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // GIF animado do samurai na thumbnail
             .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
