@@ -116,7 +116,7 @@ async function handleButtonInteraction(
         const valorTotalPartida = Number((parseFloat(valorApostaBase) + taxaAdmFixa).toFixed(2));
 
         const embedOficial = new EmbedBuilder()
-            .setTitle(`Fila #1`)
+            .setTitle(`🔵 ${tipoPartida} | SAMURAI E-SPORTS`)
             .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .setColor('#1f2023')
             .addFields(
@@ -194,7 +194,7 @@ async function handleButtonInteraction(
             const statusJogadores = jogadoresIds.map(id => `🔴 <@${id}>`).join('\n');
             const embedConfirmacao = new EmbedBuilder()
                 .setColor('#2b2d31')
-                .setTitle(`SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
+                .setTitle(`🔵 SAMURAI E-SPORTS | Confirmação de Partida 🎮`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                 .setDescription(`<a:seta:1495438968765022389> Modo: ${modoTexto} (${tipoPartida}) - ${opcaoEscolhida}\n<a:moedas:149543896733223666> Aposta: ${formatarMoeda(valorAposta)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalPartida)}**`)
                 .addFields({ name: '👤 Jogadores', value: statusJogadores, inline: false })
@@ -483,7 +483,7 @@ async function handleButtonInteraction(
 
                 const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
-                    .setTitle(`${fila.formato} | SAMURAI E-SPORTS`) // Sem coroa, sem emoji azul
+                    .setTitle(`🔵 ${fila.formato} | SAMURAI E-SPORTS`) 
                     .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                     .setDescription(`<a:seta:1495438968765022389> Modo:\n${fila.formato}\n\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(fila.valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👤 Jogadores:\nNenhum jogador na fila`)
                     .setColor('#0099ff');
@@ -559,8 +559,8 @@ async function handleButtonInteraction(
         }
 
         const novoEmbed = new EmbedBuilder()
-            .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`) // Título limpo sem coroa e sem emojis extras
-            .setThumbnail(GIF_SAMURAI_THUMBNAIL) // GIF animado do samurai na thumbnail
+            .setTitle(`🔵 ${modo.toUpperCase()} | SAMURAI E-SPORTS`) 
+            .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
             .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n${textoJogadores}`)
             .setColor('#0099ff');
 
@@ -571,7 +571,7 @@ async function handleButtonInteraction(
             global.filasGlobais.set(chaveFila, []);
 
             const embedVazio = new EmbedBuilder()
-                .setTitle(`${modo.toUpperCase()} | SAMURAI E-SPORTS`)
+                .setTitle(`🔵 ${modo.toUpperCase()} | SAMURAI E-SPORTS`)
                 .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
                 .setDescription(`<a:seta:1495438968765022389> Modo: ${modo}\n<a:moedas:149543896733223666> Aposta:\n${formatarMoeda(valor)} (+ ${formatarMoeda(taxaAdmFixa)} Taxa ADM) = **${formatarMoeda(valorTotalExibido)}**\n\n👥 **Jogadores na Fila (0/${maxJogadores})**`)
                 .setColor('#0099ff');
