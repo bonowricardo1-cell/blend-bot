@@ -19,6 +19,22 @@ async function handleButtonInteraction(
 
     const taxaAdmFixa = 0.15;
 
+    // Função auxiliar para verificar se é Dono ou Vice-Dono (baseado nos nomes dos cargos que aparecem no topo do servidor)
+    function verificarSeEhDonoOuVice() {
+        if (!member) return false;
+        
+        // Se for o dono supremo do servidor
+        if (guild.ownerId === user.id) return true;
+
+        // Verifica se o membro possui os cargos de Dono ou Vice-Dono pelo nome
+        const cargosPermitidos = ['dono de tudo', 'vice dono', 'dono', 'vice-dono'];
+        const temCargoAlto = member.roles.cache.some(role => 
+            cargosPermitidos.some(nome => role.name.toLowerCase().includes(nome))
+        );
+
+        return temCargoAlto;
+    }
+
     // Verifica se é Admin ou o Mediador da partida
     async function verificarPermissaoMediadorOuAdmin() {
         if (!member) return false;
@@ -363,17 +379,10 @@ async function handleButtonInteraction(
         return;
     }
 
-    // =========================================================================
-    // REGRA INTELIGENTE DO BOTÃO DE CANCELAR:
-    // - Se a partida AINDA ESTÁ NA CONFIRMAÇÃO (tem bolinhas vermelhas 🔴), 
-    //   qualquer jogador participante pode cancelar para renegociar/fechar.
-    // - Se JÁ PASSOU da confirmação (virou painel oficial), só mediador ou ADM.
-    // =========================================================================
     if (customId === 'btn_cancelar_partida_privada' || customId.includes('_cancelar')) {
         const ehParticipante = await verificarSeEhParticipante();
         const temPermissaoAdminOuMediador = await verificarPermissaoMediadorOuAdmin();
 
-        // Vê se ainda tem alguma bolinha vermelha (pendente de confirmação) na mensagem
         let temPendenciaVermelha = false;
         if (message && message.embeds && message.embeds[0]) {
             const embed = message.embeds[0];
@@ -383,7 +392,6 @@ async function handleButtonInteraction(
             }
         }
 
-        // Se não tem pendência vermelha (partida já confirmada/andamento), só ADM/Mediador pode cancelar
         if (!temPendenciaVermelha && !temPermissaoAdminOuMediador) {
             return interaction.followUp({ 
                 content: '❌ **Acesso Negado:** A partida já foi confirmada. Apenas o mediador responsável ou administradores podem cancelar esta partida.', 
@@ -391,7 +399,6 @@ async function handleButtonInteraction(
             }).catch(() => {});
         }
 
-        // Se ainda está pendente (vermelho), os próprios jogadores participantes podem cancelar
         if (temPendenciaVermelha && !ehParticipante && !temPermissaoAdminOuMediador) {
             return interaction.followUp({ 
                 content: '❌ **Acesso Negado:** Apenas os jogadores participantes desta partida podem cancelá-la.', 
@@ -622,7 +629,19 @@ async function handleButtonInteraction(
                 filaMediadores.splice(idx, 1);
             }
         } else if (customId === 'btn_reset_fila') {
+            // TRAVA DE SEGURANÇA: Apenas Dono ou Vice-Dono podem resetar a fila de mediadores!
+            if (!verificarSeEhDonoOuVice()) {
+                return interaction.followUp({ 
+                    content: '❌ **Acesso Negado:** Você não possui o cargo adequado (Dono ou Vice-Dono) para resetar a fila de mediadores!', 
+                    ephemeral: true 
+                }).catch(() => {});
+            }
+
             filaMediadores.length = 0;
+            await interaction.followUp({ 
+                content: '🔄 **Fila resetada com sucesso** pelo Dono/Vice-Dono.', 
+                ephemeral: true 
+            }).catch(() => {});
         }
 
         if (typeof atualizarPainelMediadoresPorMensagem === 'function') {
