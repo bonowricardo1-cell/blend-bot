@@ -246,7 +246,7 @@ async function handleButtonInteraction(
             return interaction.followUp({ content: '⚠️ Você já confirmou ou não faz parte desta partida.', ephemeral: true }).catch(() => {});
         }
 
-        const novoEmbed = EmbedBuilder.from(embed).setFields(
+        const novoEmbed = EmbedBuilder.from(embed).setThumbnail(GIF_SAMURAI_THUMBNAIL).setFields(
             { name: '👤 Jogadores', value: linhas.join('\n'), inline: false }
         );
 
@@ -481,7 +481,6 @@ async function handleButtonInteraction(
                 const jogadoresPartida = [...fila.emus];
                 fila.emus = []; 
 
-                const valorTotalExibido = Number((parseFloat(fila.valor) + taxaAdmFixa).toFixed(2));
                 const embedVazio = new EmbedBuilder()
                     .setTitle(`${fila.formato} | Fila`)
                     .setThumbnail(GIF_SAMURAI_THUMBNAIL) 
@@ -513,7 +512,6 @@ async function handleButtonInteraction(
 
         const [acao, modo, valorStr, opcaoEscolhida] = partes;
         const valor = parseFloat(valorStr);
-        const valorTotalExibido = Number((valor + taxaAdmFixa).toFixed(2));
         const chaveFila = `${message.id}`;
         const maxJogadores = limitesFila[modo.toLowerCase()] || 2;
 
